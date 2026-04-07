@@ -496,44 +496,56 @@ export const listFinalDeliveries = asyncHandler(async (req, res) => {
   const deliveries = await Delivery.find({ status: "Final Delivery" })
     .populate([
       { path: "vehicleModel", select: "vehicleModel" },
-      { path: "bookingId", select: "quotationPdf bookingId" },   // 🔥 booking pdf
-      { path: "quotationId", select: "quotationPdf bookingId" }, // 🔥 quotation pdf
+      { path: "bookingId", select: "quotationPdf bookingId items" },   // 🔥 booking pdf
+      { path: "quotationId", select: "quotationPdf bookingId productDetails" }, // 🔥 quotation pdf
     ])
     .lean();
 
-  const data = deliveries.map((delivery, i) => ({
-    SNo: i + 1,
-    orderId: delivery.orderId,
+  const data = deliveries.map((delivery, i) => {
+    let biltyNo = "N/A";
 
-    // ✅ separation
-    deliveryType: delivery.deliveryType,   // Booking | Quotation
+    if (delivery.deliveryType === "Booking" && delivery.bookingId?.items?.length) {
+      biltyNo = delivery.bookingId.items[0]?.receiptNo || "N/A";
+    }
 
-    fromName: delivery.fromName || "N/A",
-    toName: delivery.toName || "N/A",
+    if (delivery.deliveryType === "Quotation" && delivery.quotationId?.productDetails?.length) {
+      biltyNo = delivery.quotationId.productDetails[0]?.receiptNo || "N/A";
+    }
 
-    pickup: delivery.pickup || "N/A",
-    drop: delivery.drop || "N/A",
+    return {
+      SNo: i + 1,
+      orderId: delivery.orderId,
 
-    contact: delivery.contact || "N/A",
+      biltyNo,
 
-    driverName: delivery.driverName || "N/A",
+      deliveryType: delivery.deliveryType,
 
-    vehicle: delivery.vehicleModel
-      ? {
-        _id: delivery.vehicleModel._id,
-        vehicleModel: delivery.vehicleModel.vehicleModel,
-      }
-      : null,
+      fromName: delivery.fromName || "N/A",
+      toName: delivery.toName || "N/A",
 
-    // 📄 PDF auto-detect
-    pdfUrl:
-      delivery.deliveryType === "Booking"
-        ? delivery.bookingId?.quotationPdf || null
-        : delivery.quotationId?.quotationPdf || null,
+      pickup: delivery.pickup || "N/A",
+      drop: delivery.drop || "N/A",
 
-    bookingRef: delivery.bookingId?.bookingId || null,
-    quotationRef: delivery.quotationId?.bookingId || null,
-  }));
+      contact: delivery.contact || "N/A",
+
+      driverName: delivery.driverName || "N/A",
+
+      vehicle: delivery.vehicleModel
+        ? {
+          _id: delivery.vehicleModel._id,
+          vehicleModel: delivery.vehicleModel.vehicleModel,
+        }
+        : null,
+
+      pdfUrl:
+        delivery.deliveryType === "Booking"
+          ? delivery.bookingId?.quotationPdf || null
+          : delivery.quotationId?.quotationPdf || null,
+
+      bookingRef: delivery.bookingId?.bookingId || null,
+      quotationRef: delivery.quotationId?.bookingId || null,
+    };
+  });
 
   res.status(200).json(
     new ApiResponse(200, data, "Final delivery list fetched successfully.")

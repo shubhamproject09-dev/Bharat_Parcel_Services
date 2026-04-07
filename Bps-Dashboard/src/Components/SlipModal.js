@@ -8,18 +8,20 @@ import PrintIcon from '@mui/icons-material/Print';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import CompanyLogo from '../assets/logo2.png';
-import companySignature from '../assets/digital.jpeg';
+import companySignature from '../assets/BpsSignature.png';
 import moment from "moment-timezone";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import { useDispatch } from "react-redux";
-import { sendBookingWhatsappPdf } from "../features/whatsapp/whatsappSlice";
+import { sendBookingWhatsapp } from "../features/whatsapp/whatsappSlice";
 import { createRoot } from "react-dom/client";
+import html2pdf from "html2pdf.js";
 
 
 const SlipModal = ({ open, handleClose, bookingData }) => {
     const printRef = useRef();
     const dispatch = useDispatch();
     const originalRef = useRef();
+    const whatsappRef = useRef();
 
     const loadImageAsBase64 = (src) =>
         new Promise((resolve) => {
@@ -93,14 +95,13 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
     const roundedGrandTotal = Math.round(totalBeforeRound);
     const roundOff = (roundedGrandTotal - totalBeforeRound).toFixed(2);
 
-    // Calculate total quantity
-    const totalQuantity = bookingData?.items?.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0) || 1;
+    const mainItem = bookingData?.items?.find(
+        item => Number(item.weight) > 0 || Number(item.amount) > 0
+    );
 
-    // Calculate total weight
-    const totalWeight = bookingData?.items?.reduce((sum, item) => sum + (Number(item.weight) || 0), 0) || 0;
-
-    // Calculate items total
-    const itemsTotal = bookingData?.items?.reduce((sum, item) => sum + (Number(item.amount) || 0), 0) || 0;
+    const totalQuantity = mainItem?.quantity || 0;
+    const totalWeight = mainItem?.weight || 0;
+    const itemsTotal = mainItem?.amount || 0;
 
     const Invoice = ({ copyType = "Original" }) => (
         <Paper elevation={0} sx={{
@@ -436,78 +437,196 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
             </Grid>
 
             {/* Items Table with Colorful Header */}
-            <Table size="small" sx={{
-                border: '2px solid #1a237e',
-                mb: 1.5,
-                '& .MuiTableCell-root': {
-                    padding: '3px 4px',
-                    fontSize: '10px',
-                    lineHeight: 1,
-                    fontFamily: 'Arial, sans-serif'
-                }
-            }}>
-                <TableHead>
-                    <TableRow sx={{
-                        background: 'linear-gradient(45deg, #1a237e 0%, #283593 100%)'
-                    }}>
-                        <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>Sr.</TableCell>
-                        <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>Receipt No.</TableCell>
-                        <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>Ref No.</TableCell>
-                        <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>Qty</TableCell>
-                        <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>Weight</TableCell>
-                        <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>Insurance</TableCell>
-                        <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>VPP</TableCell>
-                        <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>To Pay</TableCell>
-                        <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>Amount</TableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    {bookingData?.items?.map((item, idx) => (
-                        <TableRow key={idx} sx={{
-                            backgroundColor: idx % 2 === 0 ? '#f5f5f5' : '#fff',
-                            '&:hover': { backgroundColor: '#e3f2fd' }
-                        }}>
-                            <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{idx + 1}</TableCell>
-                            <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{item.receiptNo}</TableCell>
-                            <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{item.refNo}</TableCell>
-                            <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{item.quantity || 1}</TableCell>
-                            <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{item.weight} kg</TableCell>
-                            <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(item.insurance)}</TableCell>
-                            <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(item.vppAmount)}</TableCell>
-                            <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{item.toPay}</TableCell>
-                            <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(item.amount)}</TableCell>
-                        </TableRow>
-                    ))}
 
-                    {/* Totals Row */}
-                    <TableRow sx={{
-                        backgroundColor: '#e8eaf6',
-                        borderTop: '2px solid #1a237e'
+            {bookingData?.items?.length === 1 ? (
+
+                <Table size="small" sx={{
+                    border: '2px solid #1a237e',
+                    mb: 1.5,
+                    '& .MuiTableCell-root': {
+                        padding: '3px 4px',
+                        fontSize: '10px',
+                        lineHeight: 1,
+                        fontFamily: 'Arial, sans-serif'
+                    }
+                }}>
+                    <TableHead>
+                        <TableRow sx={{
+                            background: 'linear-gradient(45deg, #1a237e 0%, #283593 100%)'
+                        }}>
+                            <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>Sr.</TableCell>
+                            <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>Receipt No.</TableCell>
+                            <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>Ref No.</TableCell>
+                            <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>Qty</TableCell>
+                            <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>Weight</TableCell>
+                            <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>Insurance</TableCell>
+                            <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>VPP</TableCell>
+                            <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>Payment</TableCell>
+                            <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>Amount</TableCell>
+                        </TableRow>
+                    </TableHead>
+
+                    <TableBody>
+                        {bookingData?.items?.map((item, idx) => (
+                            <TableRow key={idx} sx={{
+                                backgroundColor: idx % 2 === 0 ? '#f5f5f5' : '#fff'
+                            }}>
+                                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{idx + 1}</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{item.receiptNo}</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{item.refNo}</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{item.quantity || 1}</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>
+                                    {item.weight ? `${item.weight} kg` : ""}
+                                </TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>
+                                    {formatCurrency(item.insurance)}
+                                </TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>
+                                    {formatCurrency(item.vppAmount)}
+                                </TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>
+                                    {item.toPay}
+                                </TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>
+                                    {formatCurrency(
+                                        item.amount && Number(item.amount) > 0
+                                            ? item.amount
+                                            : item.insuranceAmount || 0
+                                    )}
+                                </TableCell>
+                            </TableRow>
+                        ))}
+
+                        <TableRow sx={{
+                            backgroundColor: '#e8eaf6',
+                            borderTop: '2px solid #1a237e'
+                        }}>
+                            <TableCell colSpan={3} align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold" }}>
+                                TOTAL
+                            </TableCell>
+                            <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold" }}>
+                                {totalQuantity}
+                            </TableCell>
+                            <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold" }}>
+                                {totalWeight} kg
+                            </TableCell>
+                            <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold" }}>
+                                {formatCurrency(
+                                    bookingData?.items?.reduce((sum, item) => sum + (Number(item.insurance) || 0), 0)
+                                )}
+                            </TableCell>
+                            <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold" }}>
+                                {formatCurrency(
+                                    bookingData?.items?.reduce((sum, item) => sum + (Number(item.vppAmount) || 0), 0)
+                                )}
+                            </TableCell>
+                            <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold" }}>
+                                -
+                            </TableCell>
+                            <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold" }}>
+                                {formatCurrency(itemsTotal)}
+                            </TableCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
+
+            ) : (
+
+                /* ================= TWO TABLES ================= */
+
+                <>
+
+                    {/* ================= TABLE 1 (MAIN ITEM) ================= */}
+                    <Table size="small" sx={{
+                        border: '2px solid #1a237e',
+                        mb: 1.5,
+                        '& .MuiTableCell-root': {
+                            padding: '3px 4px',
+                            fontSize: '10px',
+                            lineHeight: 1,
+                            fontFamily: 'Arial, sans-serif'
+                        }
                     }}>
-                        <TableCell colSpan={3} align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '11px', color: '#1a237e' }}>
-                            TOTAL
-                        </TableCell>
-                        <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '11px', color: '#1a237e' }}>
-                            {totalQuantity}
-                        </TableCell>
-                        <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '11px', color: '#1a237e' }}>
-                            {totalWeight} kg
-                        </TableCell>
-                        <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '11px', color: '#1a237e' }}>
-                            {formatCurrency(bookingData?.items?.reduce((sum, item) => sum + (Number(item.insurance) || 0), 0))}
-                        </TableCell>
-                        <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '11px', color: '#1a237e' }}>
-                            {formatCurrency(bookingData?.items?.reduce((sum, item) => sum + (Number(item.vppAmount) || 0), 0))}
-                        </TableCell>
-                        <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '11px', color: '#1a237e' }}>
-                            -
-                        </TableCell>
-                        <TableCell align="center" sx={{ border: "1px solid #ddd", fontWeight: "bold", fontSize: '11px', color: '#1a237e' }}>
-                            {formatCurrency(itemsTotal)}
-                        </TableCell>
-                    </TableRow>
-                </TableBody>
-            </Table>
+                        <TableHead>
+                            <TableRow sx={{
+                                background: 'linear-gradient(45deg, #1a237e 0%, #283593 100%)'
+                            }}>
+                                <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>Sr.</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>Receipt No.</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>Ref No.</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>Qty</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>Weight</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>Insurance</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>VPP</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>Payment</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>Amount</TableCell>
+                            </TableRow>
+                        </TableHead>
+
+                        <TableBody>
+                            <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+                                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>1</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{bookingData.items[0].receiptNo}</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{bookingData.items[0].refNo}</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{bookingData.items[0].quantity}</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{bookingData.items[0].weight} kg</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(bookingData.items[0].insurance)}</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(bookingData.items[0].vppAmount)}</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{bookingData.items[0].toPay}</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(bookingData.items[0].amount)}</TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+
+
+                    {/* ================= TABLE 2 (INSURANCE BREAKDOWN) ================= */}
+                    <Table size="small" sx={{
+                        border: '2px solid #1a237e',
+                        mb: 1.5,
+                        '& .MuiTableCell-root': {
+                            padding: '3px 4px',
+                            fontSize: '10px',
+                            lineHeight: 1,
+                            fontFamily: 'Arial, sans-serif'
+                        }
+                    }}>
+                        <TableHead>
+                            <TableRow sx={{
+                                background: 'linear-gradient(45deg, #1a237e 0%, #283593 100%)'
+                            }}>
+                                <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>Sr.</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>Receipt No.</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>Ref No.</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>Insurance</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>Ins Amt</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>
+                                    To Pay
+                                </TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>CGST(9%)</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>SGST(9%)</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #fff", fontWeight: "bold", color: 'white' }}>Total</TableCell>
+                            </TableRow>
+                        </TableHead>
+
+                        <TableBody>
+                            <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+                                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>2</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{bookingData.items[1].receiptNo}</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{bookingData.items[1].refNo}</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(bookingData.items[1].insurance)}</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(bookingData.items[1].insuranceAmount)}</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>
+                                    {bookingData.items[1].toPay}
+                                </TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(bookingData.items[1].insuranceCgst)}</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(bookingData.items[1].insuranceSgst)}</TableCell>
+                                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(bookingData.items[1].insuranceTotalWithGST)}</TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+
+                </>
+            )}
 
             {/* Summary Section with Colorful Design */}
             <Box sx={{
@@ -703,70 +822,49 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
         </Paper>
     );
 
-    const generatePdfBlob = async () => {
-        // 🔥 TEMP CONTAINER (VISIBLE)
-        const container = document.createElement("div");
-        container.style.position = "fixed";
-        container.style.top = "0";
-        container.style.left = "0";
-        container.style.width = "210mm";
-        container.style.height = "297mm";
-        container.style.background = "#ffffff";
-        container.style.display = "flex";
-        container.style.alignItems = "center";
-        container.style.justifyContent = "center";
-        container.style.zIndex = "-1"; // invisible to user
-        container.style.padding = "8mm";
+const generatePdfBlob = async () => {
+    const element = whatsappRef.current;
 
-        document.body.appendChild(container);
-
-        // 🔥 Render React component INSIDE container
-        const root = createRoot(container);
-        root.render(<Invoice copyType="Original" />);
-
-        // wait for render
-        await new Promise((res) => setTimeout(res, 300));
-
-        const canvas = await html2canvas(container, {
-            scale: 1.8,
-            useCORS: true,
-            backgroundColor: "#ffffff",
-        });
-
-        root.unmount();
-        document.body.removeChild(container);
-
-        const imgData = canvas.toDataURL("image/jpeg", 0.75);
-
-        const pdf = new jsPDF("p", "mm", "a4");
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
-
-        const imgWidth = pageWidth;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-        const yOffset = (pageHeight - imgHeight) / 2;
-
-        pdf.addImage(imgData, "JPEG", 0, yOffset, imgWidth, imgHeight);
-
-        return pdf.output("blob");
+    const opt = {
+        margin: 5,
+        filename: "booking.pdf",
+        image: { type: "jpeg", quality: 0.95 },
+        html2canvas: {
+            scale: 2, // 🔥 high quality
+            useCORS: true
+        },
+        jsPDF: {
+            unit: "mm",
+            format: "a4",
+            orientation: "portrait"
+        }
     };
+
+    const worker = html2pdf().set(opt).from(element);
+
+    const pdfBlob = await worker.outputPdf("blob");
+
+    return pdfBlob;
+};
 
     const handleSendWhatsapp = async () => {
         try {
             const pdfBlob = await generatePdfBlob();
 
-            await dispatch(
-                sendBookingWhatsappPdf({
-                    bookingId: bookingData.bookingId,
-                    pdfBlob: pdfBlob,
-                })
-            ).unwrap();
+            const formData = new FormData();
+            formData.append("bookingId", bookingData.bookingId);
+            formData.append("file", pdfBlob, "booking-slip.pdf");
 
-            alert("✅ Bilty sent on WhatsApp");
+           const res = await dispatch(sendBookingWhatsapp(formData));
+
+if (res?.meta?.requestStatus === "fulfilled") {
+    alert("✅ WhatsApp sent successfully");
+} else {
+    alert("❌ Failed to send WhatsApp");
+}
         } catch (err) {
-            alert("❌ WhatsApp send failed");
             console.error(err);
+            alert("❌ Failed");
         }
     };
 
@@ -851,7 +949,8 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
                             border: 2px solid #000 !important;
                             padding: 3mm !important;
                             padding-bottom: 8mm !important;
-                            height: 145mm !important;   
+                            min-height: 145mm !important; 
+                             height: auto !important;
                             overflow: hidden !important;
                             background: #fff !important;
                         }
@@ -918,7 +1017,7 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
                             width: 48% !important;
                             padding: 1mm !important;
                             border-radius: 2mm !important;
-                            border: 1px solid #ddd !important;
+                            border: 1px solid #000 !important;
                         }
                         
                         .address-1 {
@@ -1022,14 +1121,14 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
                             padding: 1mm !important;
                             background-color: #e3f2fd !important;
                             border-radius: 2mm !important;
-                            border: 1px solid #bbdefb !important;
+                            border: 1px solid #000 !important;
                         }
                         
                         .receiver-box {
                             padding: 1mm !important;
                             background-color: #e8f5e9 !important;
                             border-radius: 2mm !important;
-                            border: 1px solid #c8e6c9 !important;
+                            border: 1px solid #000 !important;
                         }
                         
                         .sender-title {
@@ -1069,7 +1168,7 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
                         }
                         
                         .branch-box {
-                            border: 1px solid #d7ccc8 !important;
+                            border: 1px solid #000 !important;
                             padding: 1mm !important;
                             background-color: #fff !important;
                             border-radius: 2mm !important;
@@ -1131,14 +1230,14 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
 
                         
                         th, td {
-                            border: 1px solid #ddd !important;
+                            border: 1px solid #000 !important;
                             padding: 0.5mm 0.8mm !important;
                             text-align: center !important;
                         }
                         
                         th {
                             font-weight: bold !important;
-                            background: background: #fff !important;
+                            background: background: #000 !important;
                              color: #000 !important; 
                             border: 1px solid #fff !important;
                         }
@@ -1173,7 +1272,7 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
                             background-color: #fff !important;
                             padding: 1mm !important;
                             border-radius: 2mm !important;
-                            border: 1px solid #e0e0e0 !important;
+                            border: 1px solid #000 !important;
                         }
                         
                         .summary-table {
@@ -1219,10 +1318,8 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
                         }
                         
                         .customer-signature {
-                            border-top: 1px solid #5d4037 !important;
-                            padding-top: 0.8mm !important;
+                            border-top: 1px solid #000 !important;
                             margin-top: 11mm !important;
-                            min-height: 15mm !important; 
                             font-size: 9px !important;
                             font-weight: bold !important;
                             color: #5d4037 !important;
@@ -1232,11 +1329,11 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
                         }
                         
                         .company-signature {
-                            border-top: 1px solid #1a237e !important;
+                            border-top: 1px solid #000 !important;
                             padding-top: 0.8mm !important;
                             font-size: 9px !important;
                             font-weight: bold !important;
-                            color: #1a237e !important;
+                            color: #000 !important;
                             background-color: #f5f5f5 !important;
                             padding: 0.8mm !important;
                             border-radius: 2mm !important;
@@ -1245,7 +1342,6 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
                         .signature-note {
                             font-size: 8px !important;
                             color: #666 !important;
-                            margin-top: 0.5mm !important;
                         }
                         
                         .signature-image {
@@ -1367,46 +1463,102 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
                             </div>
                         </div>
                         
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Sr.</th>
-                                    <th>Receipt No.</th>
-                                    <th>Ref No.</th>
-                                    <th>Qty</th>
-                                    <th>Weight</th>
-                                    <th>Insurance</th>
-                                    <th>VPP</th>
-                                    <th>To Pay</th>
-                                    <th>Amount</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${bookingData?.items?.map((item, idx) => `
-                                    <tr style="background-color: ${idx % 2 === 0 ? '#f5f5f5' : 'white'} !important;">
-                                        <td>${idx + 1}</td>
-                                        <td>${item.receiptNo}</td>
-                                        <td>${item.refNo}</td>
-                                        <td>${item.quantity || 1}</td>
-                                        <td>${item.weight} kg</td>
-                                        <td>${formatCurrency(item.insurance)}</td>
-                                        <td>${formatCurrency(item.vppAmount)}</td>
-                                        <td>${item.toPay}</td>
-                                        <td>${formatCurrency(item.amount)}</td>
-                                    </tr>
-                                `).join('')}
-                                
-                                <tr class="total-row">
-                                    <td colspan="3" style="font-weight:bold;text-align:center;">TOTAL</td>
-                                    <td style="font-weight:bold;text-align:center;">${totalQuantity}</td>
-                                    <td style="font-weight:bold;text-align:center;">${totalWeight} kg</td>
-                                    <td style="font-weight:bold;text-align:center;">${formatCurrency(bookingData?.items?.reduce((sum, item) => sum + (Number(item.insurance) || 0), 0))}</td>
-                                    <td style="font-weight:bold;text-align:center;">${formatCurrency(bookingData?.items?.reduce((sum, item) => sum + (Number(item.vppAmount) || 0), 0))}</td>
-                                    <td style="font-weight:bold;text-align:center;">-</td>
-                                    <td style="font-weight:bold;text-align:center;">${formatCurrency(itemsTotal)}</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                      ${bookingData?.items?.length === 1 ? `
+
+<table>
+    <thead>
+        <tr>
+            <th>Sr.</th>
+            <th>Receipt No.</th>
+            <th>Ref No.</th>
+            <th>Qty</th>
+            <th>Weight</th>
+            <th>Insurance</th>
+            <th>VPP</th>
+            <th>Payment</th>
+            <th>Amount</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>1</td>
+            <td>${bookingData.items[0].receiptNo}</td>
+            <td>${bookingData.items[0].refNo}</td>
+            <td>${bookingData.items[0].quantity}</td>
+            <td>${bookingData.items[0].weight} kg</td>
+            <td>${formatCurrency(bookingData.items[0].insurance)}</td>
+            <td>${formatCurrency(bookingData.items[0].vppAmount)}</td>
+          <td style="font-size:12px;font-weight:bold;">
+  ${bookingData.items[0].toPay}
+</td>
+            <td>${formatCurrency(bookingData.items[0].amount)}</td>
+        </tr>
+    </tbody>
+</table>
+
+` : `
+
+<!-- TABLE 1 (MAIN ITEM) -->
+<table>
+    <thead>
+        <tr>
+            <th>Sr.</th>
+            <th>Receipt No.</th>
+            <th>Ref No.</th>
+            <th>Qty</th>
+            <th>Weight</th>
+            <th>Insurance</th>
+            <th>VPP</th>
+            <th>Payment</th>
+            <th>Amount</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>1</td>
+            <td>${bookingData.items[0].receiptNo}</td>
+            <td>${bookingData.items[0].refNo}</td>
+            <td>${bookingData.items[0].quantity}</td>
+            <td>${bookingData.items[0].weight} kg</td>
+            <td>${formatCurrency(bookingData.items[0].insurance)}</td>
+            <td>${formatCurrency(bookingData.items[0].vppAmount)}</td>
+            <td>${bookingData.items[0].toPay}</td>
+            <td>${formatCurrency(bookingData.items[0].amount)}</td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- TABLE 2 (INSURANCE BREAKDOWN) -->
+<table>
+    <thead>
+        <tr>
+            <th>Sr.</th>
+            <th>Receipt No.</th>
+            <th>Ref No.</th>
+            <th>Insurance</th>
+            <th>Ins Amt</th>
+            <th>Payment</th>
+            <th>CGST(9%)</th>
+            <th>SGST(9%)</th>
+            <th>Total</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>2</td>
+            <td>${bookingData.items[1].receiptNo}</td>
+            <td>${bookingData.items[1].refNo}</td>
+            <td>${formatCurrency(bookingData.items[1].insurance)}</td>
+            <td>${formatCurrency(bookingData.items[1].insuranceAmount)}</td>
+            <td>${bookingData.items[1].toPay}</td>
+            <td>${formatCurrency(bookingData.items[1].insuranceCgst)}</td>
+            <td>${formatCurrency(bookingData.items[1].insuranceSgst)}</td>
+            <td>${formatCurrency(bookingData.items[1].insuranceTotalWithGST)}</td>
+        </tr>
+    </tbody>
+</table>
+
+`}
                         
                         <div class="summary-section">
                             <div class="summary-grid">
@@ -1570,46 +1722,100 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
                             </div>
                         </div>
                         
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Sr.</th>
-                                    <th>Receipt No.</th>
-                                    <th>Ref No.</th>
-                                    <th>Qty</th>
-                                    <th>Weight</th>
-                                    <th>Insurance</th>
-                                    <th>VPP</th>
-                                    <th>To Pay</th>
-                                    <th>Amount</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${bookingData?.items?.map((item, idx) => `
-                                    <tr style="background-color: ${idx % 2 === 0 ? '#f5f5f5' : 'white'} !important;">
-                                        <td>${idx + 1}</td>
-                                        <td>${item.receiptNo}</td>
-                                        <td>${item.refNo}</td>
-                                        <td>${item.quantity || 1}</td>
-                                        <td>${item.weight} kg</td>
-                                        <td>${formatCurrency(item.insurance)}</td>
-                                        <td>${formatCurrency(item.vppAmount)}</td>
-                                        <td>${item.toPay}</td>
-                                        <td>${formatCurrency(item.amount)}</td>
-                                    </tr>
-                                `).join('')}
-                                
-                                <tr class="total-row">
-                                    <td colspan="3" style="font-weight:bold;text-align:center;">TOTAL</td>
-                                    <td style="font-weight:bold;text-align:center;">${totalQuantity}</td>
-                                    <td style="font-weight:bold;text-align:center;">${totalWeight} kg</td>
-                                    <td style="font-weight:bold;text-align:center;">${formatCurrency(bookingData?.items?.reduce((sum, item) => sum + (Number(item.insurance) || 0), 0))}</td>
-                                    <td style="font-weight:bold;text-align:center;">${formatCurrency(bookingData?.items?.reduce((sum, item) => sum + (Number(item.vppAmount) || 0), 0))}</td>
-                                    <td style="font-weight:bold;text-align:center;">-</td>
-                                    <td style="font-weight:bold;text-align:center;">${formatCurrency(itemsTotal)}</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        ${bookingData?.items?.length === 1 ? `
+
+<table>
+    <thead>
+        <tr>
+            <th>Sr.</th>
+            <th>Receipt No.</th>
+            <th>Ref No.</th>
+            <th>Qty</th>
+            <th>Weight</th>
+            <th>Insurance</th>
+            <th>VPP</th>
+            <th>Payment</th>
+            <th>Amount</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>1</td>
+            <td>${bookingData.items[0].receiptNo}</td>
+            <td>${bookingData.items[0].refNo}</td>
+            <td>${bookingData.items[0].quantity}</td>
+            <td>${bookingData.items[0].weight} kg</td>
+            <td>${formatCurrency(bookingData.items[0].insurance)}</td>
+            <td>${formatCurrency(bookingData.items[0].vppAmount)}</td>
+            <td>${bookingData.items[0].toPay}</td>
+            <td>${formatCurrency(bookingData.items[0].amount)}</td>
+        </tr>
+    </tbody>
+</table>
+
+` : `
+
+<!-- TABLE 1 (MAIN ITEM) -->
+<table>
+    <thead>
+        <tr>
+            <th>Sr.</th>
+            <th>Receipt No.</th>
+            <th>Ref No.</th>
+            <th>Qty</th>
+            <th>Weight</th>
+            <th>Insurance</th>
+            <th>VPP</th>
+            <th>Payment</th>
+            <th>Amount</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>1</td>
+            <td>${bookingData.items[0].receiptNo}</td>
+            <td>${bookingData.items[0].refNo}</td>
+            <td>${bookingData.items[0].quantity}</td>
+            <td>${bookingData.items[0].weight} kg</td>
+            <td>${formatCurrency(bookingData.items[0].insurance)}</td>
+            <td>${formatCurrency(bookingData.items[0].vppAmount)}</td>
+            <td>${bookingData.items[0].toPay}</td>
+            <td>${formatCurrency(bookingData.items[0].amount)}</td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- TABLE 2 (INSURANCE BREAKDOWN) -->
+<table>
+    <thead>
+        <tr>
+            <th>Sr.</th>
+            <th>Receipt No.</th>
+            <th>Ref No.</th>
+            <th>Insurance</th>
+            <th>Ins Amt</th>
+            <th>Payment</th>
+            <th>CGST(9%)</th>
+            <th>SGST(9%)</th>
+            <th>Total</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>2</td>
+            <td>${bookingData.items[1].receiptNo}</td>
+            <td>${bookingData.items[1].refNo}</td>
+            <td>${formatCurrency(bookingData.items[1].insurance)}</td>
+            <td>${formatCurrency(bookingData.items[1].insuranceAmount)}</td>
+            <td>${bookingData.items[1].toPay}</td>
+            <td>${formatCurrency(bookingData.items[1].insuranceCgst)}</td>
+            <td>${formatCurrency(bookingData.items[1].insuranceSgst)}</td>
+            <td>${formatCurrency(bookingData.items[1].insuranceTotalWithGST)}</td>
+        </tr>
+    </tbody>
+</table>
+
+`}
                         
                         <div class="summary-section">
                             <div class="summary-grid">
@@ -1745,6 +1951,20 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
                 >
                     <Invoice copyType="Original" />
                 </Box>
+                {/* WhatsApp only original */}
+                <div style={{ position: "absolute", left: "-9999px" }}>
+  <div
+    ref={whatsappRef}
+    style={{
+      width: "210mm",
+      minHeight: "297mm",
+      padding: "10mm",
+      background: "#fff"
+    }}
+  >
+    <Invoice />
+  </div>
+</div>
                 <Box textAlign="center" mt={2}>
                     <ButtonGroup variant="contained" aria-label="slip actions">
                         <Button

@@ -161,8 +161,8 @@ const Bin = () => {
                                             <TableCell>{index + 1}</TableCell>
                                             <TableCell>{item.senderName}</TableCell>
                                             <TableCell>{item.receiverName}</TableCell>
-                                            <TableCell>{item.startStation}</TableCell>
-                                            <TableCell>{item.endStation}</TableCell>
+                                            <TableCell>{item.fromCity}</TableCell>
+                                            <TableCell>{item.toCity}</TableCell>
                                             <TableCell>{item.mobile}</TableCell>
                                             <TableCell>
                                                 {item.bookingDate
@@ -173,7 +173,7 @@ const Bin = () => {
                                                 <Stack direction={'row'}>
                                                     <IconButton
                                                         color="success"
-                                                        onClick={() => handleRestore(item.bookingId)}
+                                                        onClick={() => item?._id && handleRestore(item._id)}
                                                         title="Restore"
                                                     >
                                                         <RestoreIcon />

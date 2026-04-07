@@ -10,6 +10,10 @@ export const createStaff = async (req, res) => {
         const {
             firstName,
             lastName,
+            dob,
+            joiningDate,
+            expiryDate,
+            designation,
             contactNumber,
             email,
             aadharNumber,
@@ -17,13 +21,26 @@ export const createStaff = async (req, res) => {
             state,
             city,
             district,
-            pincode
+            pincode,
+            officeAddress
         } = req.body;
 
-        // Validation
+        // ✅ Validation
         const requiredFields = [
-            firstName, lastName, contactNumber, email,
-            aadharNumber, addressLine, state, city, district, pincode
+            firstName,
+            dob,
+            joiningDate,
+            expiryDate,
+            designation,
+            contactNumber,
+            email,
+            aadharNumber,
+            addressLine,
+            state,
+            city,
+            district,
+            pincode,
+            officeAddress
         ];
 
         if (requiredFields.some(f => !f)) {
@@ -33,7 +50,7 @@ export const createStaff = async (req, res) => {
             });
         }
 
-        // Duplicate check
+        // ✅ Duplicate check
         const existing = await Staff.findOne({
             $or: [{ email }, { contactNumber }, { aadharNumber }]
         });
@@ -45,19 +62,27 @@ export const createStaff = async (req, res) => {
             });
         }
 
-        // ✅ get docs from middleware
+        // ✅ get uploaded docs from middleware
         const aadharCardPhoto = req.staffDocs?.aadharCardPhoto || null;
         const passportPhoto = req.staffDocs?.passportPhoto || null;
+        const digitalSignature = req.staffDocs?.digitalSignature || null;
 
+        // ✅ Create staff
         const staff = await Staff.create({
             firstName,
             lastName,
+            dob,
+            joiningDate,
+            expiryDate,
+            designation,
             contactNumber,
             email,
             aadharNumber,
+            officeAddress,
             documents: {
                 aadharCardPhoto,
-                passportPhoto
+                passportPhoto,
+                digitalSignature
             },
             address: {
                 addressLine,
@@ -85,7 +110,6 @@ export const createStaff = async (req, res) => {
         });
     }
 };
-
 
 /* =====================================================
    GET ALL STAFF (Pagination + Filter + Search)
@@ -194,6 +218,15 @@ export const updateStaff = async (req, res) => {
             staff.documents.passportPhoto = req.staffDocs.passportPhoto;
         }
 
+        if (staff.joiningDate && staff.expiryDate) {
+            if (new Date(staff.expiryDate) <= new Date(staff.joiningDate)) {
+                return res.status(400).json({
+                    status: false,
+                    message: "Expiry date must be after joining date"
+                });
+            }
+        }
+
         // Update fields
         Object.assign(staff, req.body);
 
@@ -281,7 +314,9 @@ export const deleteStaff = async (req, res) => {
 
         staff.isDeleted = true;
         staff.status = "inactive";
-        await staff.save();
+
+        // 🔥 IMPORTANT FIX
+        await staff.save({ validateBeforeSave: false });
 
         return res.json({
             status: true,
@@ -296,3 +331,4 @@ export const deleteStaff = async (req, res) => {
         });
     }
 };
+

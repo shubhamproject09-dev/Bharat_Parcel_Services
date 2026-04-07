@@ -126,6 +126,13 @@ const DeliveryCard = () => {
 
     const filteredBookingList = bookingList?.filter(item => {
         const text = searchText.toLowerCase();
+        const biltyNo = (
+            item.biltyNo ||
+            item.receiptNo ||
+            item?.data?.biltyNo ||
+            item.bookingId ||
+            ''
+        ).toLowerCase();
         const orderId = (item?.data?.orderId || item.bookingId || '').toLowerCase();
         const from = (item.fromName || '').toLowerCase();
         const to = getToName(item).toLowerCase();
@@ -134,6 +141,7 @@ const DeliveryCard = () => {
         const contact = (item.contact || '').toLowerCase();
 
         return (
+            biltyNo.includes(text) ||
             orderId.includes(text) ||
             from.includes(text) ||
             to.includes(text) ||
@@ -240,7 +248,14 @@ const DeliveryCard = () => {
     const filteredFinalList = getFilteredFinalList();
     const filteredFinalSearchList = filteredFinalList.filter(item => {
         const text = searchText.toLowerCase();
+        const biltyNo =
+            item.biltyNo ||
+            item.receiptNo ||
+            item?.data?.biltyNo ||
+            item.orderId ||
+            '';
         return (
+            biltyNo.toLowerCase().includes(text) ||
             (item.orderId || '').toLowerCase().includes(text) ||
             (item.fromName || '').toLowerCase().includes(text) ||
             (item.toName || '').toLowerCase().includes(text) ||
@@ -519,6 +534,7 @@ const DeliveryCard = () => {
                                     </TableCell>
                                 )}
                                 <TableCell width="80px">S.No</TableCell>
+                                <TableCell>Bilty No.</TableCell>
                                 <TableCell>Order ID</TableCell>
                                 <TableCell>From Name</TableCell>
                                 <TableCell>To Name</TableCell>
@@ -548,6 +564,12 @@ const DeliveryCard = () => {
                                     const fromName = item.fromName || item.Name || 'N/A';
                                     const toName = getToName(item);
                                     const orderId = item?.data?.orderId || item.bookingId || item['Booking ID'] || 'N/A';
+                                    const biltyNo =
+                                        item.biltyNo ||
+                                        item.receiptNo ||
+                                        item?.data?.biltyNo ||
+                                        item.bookingId ||
+                                        'N/A';
 
                                     return (
                                         <TableRow
@@ -575,6 +597,11 @@ const DeliveryCard = () => {
                                                         fontWeight: 600
                                                     }}
                                                 />
+                                            </TableCell>
+                                            <TableCell>
+                                                <Typography variant="body2" fontWeight={600} noWrap>
+                                                    {biltyNo}
+                                                </Typography>
                                             </TableCell>
                                             <TableCell>
                                                 <Typography variant="body2" fontWeight={600}>
@@ -634,6 +661,12 @@ const DeliveryCard = () => {
                                         item.quotationId ||
                                         item.orderId ||
                                         'N/A';
+                                    const biltyNo =
+                                        item.biltyNo ||
+                                        item.receiptNo ||
+                                        item?.data?.biltyNo ||
+                                        item.bookingId ||
+                                        'N/A';
 
                                     return (
                                         <TableRow
@@ -661,6 +694,11 @@ const DeliveryCard = () => {
                                                         fontWeight: 600
                                                     }}
                                                 />
+                                            </TableCell>
+                                            <TableCell>
+                                                <Typography variant="body2" fontWeight={600} noWrap>
+                                                    {biltyNo}
+                                                </Typography>
                                             </TableCell>
                                             <TableCell>
                                                 <Typography variant="body2" fontWeight={600}>
@@ -709,102 +747,93 @@ const DeliveryCard = () => {
                                 )
                             ) : selectedCard === 'final' ? (
                                 <>
-                                    {filteredFinalSearchList.length > 0 ? filteredFinalSearchList.map((item, idx) => (
-                                        <TableRow
-                                            key={`${finalDeliveryType}-${item.orderId || idx}`}
-                                            hover
-                                            sx={{
-                                                '&:hover': { backgroundColor: theme.palette.action.hover },
-                                                '&:last-child td': { borderBottom: 0 }
-                                            }}
-                                        >
-                                            <TableCell>
-                                                <Chip
-                                                    label={idx + 1}
-                                                    size="small"
-                                                    sx={{
-                                                        backgroundColor: finalDeliveryType === 'booking'
-                                                            ? alpha(theme.palette.primary.main, 0.1)
-                                                            : alpha(theme.palette.secondary.main, 0.1),
-                                                        color: finalDeliveryType === 'booking'
-                                                            ? theme.palette.primary.main
-                                                            : theme.palette.secondary.main,
-                                                        fontWeight: 600
-                                                    }}
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <Typography variant="body2" fontWeight={600}>
-                                                    {item.orderId || 'N/A'}
-                                                </Typography>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Typography variant="body2" fontWeight={500}>
-                                                    {item.fromName || 'N/A'}
-                                                </Typography>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Typography variant="body2" fontWeight={500}>
-                                                    {item.toName || 'N/A'}
-                                                </Typography>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Chip
-                                                    label={item.pickup || 'N/A'}
-                                                    size="small"
-                                                    variant="outlined"
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <Chip
-                                                    label={item.drop || 'N/A'}
-                                                    size="small"
-                                                    color={finalDeliveryType === 'booking' ? 'primary' : 'secondary'}
-                                                    variant="outlined"
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <Typography variant="body2" color="text.secondary">
-                                                    {item.contact || 'N/A'}
-                                                </Typography>
-                                            </TableCell>
-                                            <TableCell align="center" sx={{ display: 'flex' }}>
-                                                <Tooltip title="Preview PDF">
-                                                    <IconButton
-                                                        color="info"
-                                                        onClick={() => handlePreview(item.pdfUrl)}
-                                                        sx={{
-                                                            backgroundColor: alpha(theme.palette.info.main, 0.1),
-                                                            '&:hover': { backgroundColor: alpha(theme.palette.info.main, 0.2) }
-                                                        }}
-                                                    >
-                                                        <VisibilityIcon />
-                                                    </IconButton>
-                                                </Tooltip>
-                                                <Tooltip title="Send Notification">
-                                                    <IconButton
-                                                        color="primary"
-                                                        onClick={() => handleSend(item.orderId)}
-                                                        sx={{
-                                                            ml: 1,
-                                                            backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                                                            '&:hover': { backgroundColor: alpha(theme.palette.primary.main, 0.2) }
-                                                        }}
-                                                    >
-                                                        <SendIcon />
-                                                    </IconButton>
-                                                </Tooltip>
-                                            </TableCell>
-                                        </TableRow>
-                                    )) : (
+                                    {filteredFinalSearchList.length > 0 ? (
+                                        filteredFinalSearchList.map((item, idx) => {
+
+                                            const biltyNo =
+                                                item.biltyNo ||
+                                                item.receiptNo ||
+                                                item?.data?.biltyNo ||
+                                                'N/A';
+
+                                            return (
+                                                <TableRow
+                                                    key={`${finalDeliveryType}-${item.orderId || idx}`}
+                                                    hover
+                                                >
+                                                    {/* S.No */}
+                                                    <TableCell>
+                                                        <Chip label={idx + 1} size="small" />
+                                                    </TableCell>
+
+                                                    {/* ✅ Bilty No */}
+                                                    <TableCell>
+                                                        <Typography variant="body2" fontWeight={600} noWrap>
+                                                            {biltyNo}
+                                                        </Typography>
+                                                    </TableCell>
+
+                                                    {/* Order ID */}
+                                                    <TableCell>
+                                                        <Typography variant="body2" fontWeight={600}>
+                                                            {item.orderId || 'N/A'}
+                                                        </Typography>
+                                                    </TableCell>
+
+                                                    {/* From */}
+                                                    <TableCell>{item.fromName || 'N/A'}</TableCell>
+
+                                                    {/* To */}
+                                                    <TableCell>{item.toName || 'N/A'}</TableCell>
+
+                                                    {/* Pickup */}
+                                                    <TableCell>
+                                                        <Chip label={item.pickup || 'N/A'} size="small" variant="outlined" />
+                                                    </TableCell>
+
+                                                    {/* Drop */}
+                                                    <TableCell>
+                                                        <Chip
+                                                            label={item.drop || 'N/A'}
+                                                            size="small"
+                                                            color="primary"
+                                                            variant="outlined"
+                                                        />
+                                                    </TableCell>
+
+                                                    {/* Contact */}
+                                                    <TableCell>{item.contact || 'N/A'}</TableCell>
+
+                                                    {/* Actions */}
+                                                    <TableCell align="center" sx={{ display: 'flex' }}>
+                                                        <Tooltip title="Preview PDF">
+                                                            <IconButton
+                                                                color="info"
+                                                                onClick={() => handlePreview(item.pdfUrl)}
+                                                            >
+                                                                <VisibilityIcon />
+                                                            </IconButton>
+                                                        </Tooltip>
+
+                                                        <Tooltip title="Send Notification">
+                                                            <IconButton
+                                                                color="primary"
+                                                                onClick={() => handleSend(item.orderId)}
+                                                                sx={{ ml: 1 }}
+                                                            >
+                                                                <SendIcon />
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })
+                                    ) : (
                                         <TableRow>
-                                            <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
-                                                <CheckCircleOutlineIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
-                                                <Typography variant="h6" color="text.secondary" gutterBottom>
-                                                    No final {finalDeliveryType} deliveries found
-                                                </Typography>
-                                                <Typography variant="body2" color="text.secondary">
-                                                    No {finalDeliveryType === 'booking' ? 'booking' : 'quotation'} deliveries have been assigned yet
+                                            <TableCell colSpan={9} align="center" sx={{ py: 6 }}>
+                                                <CheckCircleOutlineIcon sx={{ fontSize: 60, color: 'text.disabled' }} />
+                                                <Typography variant="h6" color="text.secondary">
+                                                    No final deliveries found
                                                 </Typography>
                                             </TableCell>
                                         </TableRow>

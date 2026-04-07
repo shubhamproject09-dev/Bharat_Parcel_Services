@@ -49,10 +49,9 @@ import {
   revenueList,
   viewBookingById,
   clearViewedBooking,
-  uploadQuotationPdf
+  uploadQuotationPdf,
+  cancelQuotation
 } from "../../../features/quotation/quotationSlice";
-import { sendBookingConfirmWhatsapp } from "../../../features/whatsapp/whatsappSlice";
-import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import { finalizeDelivery } from "../../../features/delivery/deliverySlice";
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { Snackbar, Alert } from '@mui/material';
@@ -64,10 +63,21 @@ import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 
 
 function descendingComparator(a, b, orderBy) {
+
+  // 🔥 DATE SORT
   if (orderBy === "quotationDate") {
-    return new Date(b.quotationDate) - new Date(a.quotationDate); // ✅ DESC date
+    return new Date(b.quotationDate) - new Date(a.quotationDate);
   }
 
+  // 🔥 BILTY SORT (IMPORTANT)
+  if (orderBy === "biltyNo") {
+    return (b.biltyNo || "").localeCompare(a.biltyNo || "", undefined, {
+      numeric: true,
+      sensitivity: "base"
+    });
+  }
+
+  // 🔥 DEFAULT
   if (b[orderBy] < a[orderBy]) return -1;
   if (b[orderBy] > a[orderBy]) return 1;
   return 0;
@@ -114,7 +124,7 @@ const formatDateToDDMMYYYY = (dateString) => {
 const headCells = [
   { id: "active", label: "Finalize", sortable: false, width: 80 }, // Added for checkbox
   { id: "sno", label: "S.No", sortable: false, width: 50 },
-  { id: "biltyNo", label: "Bilty No", sortable: false, width: 130 },
+  { id: "biltyNo", label: "Bilty No", sortable: true, width: 130 },
   { id: "bookingId", label: "Order By", sortable: true, width: 120 },
   { id: "quotationDate", label: "Date", sortable: true, width: 100 },
   { id: "senderName", label: "Name", sortable: true, width: 120 },
@@ -122,6 +132,7 @@ const headCells = [
   { id: "receiverName", label: "Name", sortable: false, width: 120 },
   { id: "dropCity", label: "Drop", sortable: false, width: 80 },
   { id: "contact", label: "Contact", sortable: false, width: 120 },
+  { id: "cancelReason", label: "Cancel Reason", sortable: false, width: 150 },
   { id: "action", label: "Action", sortable: false, width: 320 },
 ];
 
@@ -146,9 +157,9 @@ const QuotationCard = () => {
   const [localModalOpen, setLocalModalOpen] = useState(false);
   const [activeCard, setActiveCard] = useState("request");
   const [order, setOrder] = useState("desc");          // ✅ latest first
-  const [orderBy, setOrderBy] = useState("quotationDate"); // ✅ date based
+  const [orderBy, setOrderBy] = useState("biltyNo");
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedList, setSelectedList] = useState("request");
   const [openSnackbar, setOpenSnackbar] = useState(false);
@@ -218,6 +229,11 @@ const QuotationCard = () => {
     navigate("/quotationform");
   };
 
+  useEffect(() => {
+    setOrder("desc");
+    setOrderBy("biltyNo");
+  }, [selectedList]);
+
   const isRevenueCardActive = activeCard === "revenue";
   const displayHeadCells = isRevenueCardActive ? revenueHeadCells : headCells;
 
@@ -235,6 +251,32 @@ const QuotationCard = () => {
     setOrder(isAsc ? "desc" : "asc");
     setOrderBy(property);
   };
+
+  const handleCancel = (bookingId) => {
+  const reason = prompt("Enter cancel reason:");
+
+  if (!reason) {
+    alert("❗ Cancel reason required");
+    return;
+  }
+
+  const confirmCancel = window.confirm(
+    `Are you sure?\nReason: ${reason}`
+  );
+
+  if (!confirmCancel) return;
+
+  dispatch(cancelQuotation({ bookingId, reason }))
+    .unwrap()
+    .then(() => {
+      alert("✅ Cancelled successfully");
+      dispatch(fetchBookingRequest()); // refresh
+      dispatch(fetchCancelledBooking());
+    })
+    .catch((err) => {
+      alert(err || "Cancel failed");
+    });
+};
 
   const handleChangePage = (event, newPage) => setPage(newPage);
 
@@ -264,32 +306,6 @@ const QuotationCard = () => {
       })
       .catch((err) => {
         alert(err || "Failed to send Email");
-      });
-  };
-
-  const handleWhatsAppSend = (row) => {
-    if (!row) return;
-
-    const confirmSend = window.confirm(
-      "Are you sure you want to send booking confirmation on WhatsApp?"
-    );
-
-    if (!confirmSend) return;
-
-    const bookingId = row.bookingId || row["Booking ID"];
-
-    if (!bookingId) {
-      alert("❌ Booking ID not found");
-      return;
-    }
-
-    dispatch(sendBookingConfirmWhatsapp(bookingId))
-      .unwrap()
-      .then(() => {
-        setOpenWhatsappSnackbar(true);
-      })
-      .catch((err) => {
-        alert(err?.message || "Failed to send WhatsApp");
       });
   };
 
@@ -568,6 +584,7 @@ const QuotationCard = () => {
                   .filter((headCell) => {
                     // Finalize column only for Active list
                     if (headCell.id === "active" && selectedList !== "active") return false;
+                    if (headCell.id === "cancelReason" && selectedList !== "cancelled") return false;
                     return true;
                   })
                   .map((headCell) => (
@@ -676,11 +693,11 @@ const QuotationCard = () => {
                         <TableCell sx={{ whiteSpace: "nowrap", minWidth: 100 }}>
                           {formatDateToDDMMYYYY(row.Date || row.quotationDate)}
                         </TableCell>
-                        <Tooltip title={row.Name || row.senderName || ""} arrow>
-                          <TableCell sx={{ whiteSpace: "nowrap", minWidth: 150 }}>
-                            {row.Name || row.senderName}
-                          </TableCell>
-                        </Tooltip>
+                       <Tooltip title={row.fromCustomerName || row.Name || row.senderName || ""} arrow>
+  <TableCell sx={{ whiteSpace: "nowrap", minWidth: 150 }}>
+    {row.fromCustomerName || row.Name || row.senderName}
+  </TableCell>
+</Tooltip>
                         <Tooltip title={row.pickup || row.pickupCity || ""} arrow>
                           <TableCell sx={{ whiteSpace: "nowrap", minWidth: 150 }}>
                             {row.pickup || row.pickupCity}
@@ -700,120 +717,146 @@ const QuotationCard = () => {
                           <TableCell sx={{ whiteSpace: "nowrap", minWidth: 120 }}>
                             {row.Contact || row.contact}
                           </TableCell>
-                        </Tooltip>
+                          </Tooltip>
+                          {selectedList === "cancelled" && (
+                          <TableCell sx={{ whiteSpace: "nowrap", minWidth: 150 }}>
+                          {row.cancelReason || "-"}
+                          </TableCell>
+                            )}
                         <TableCell sx={{ whiteSpace: "nowrap", minWidth: 250 }}>
-                          <Box sx={{
-                            display: "flex",
-                            gap: 0.5,
-                            flexWrap: "nowrap",
-                          }}>
-                            <Tooltip title="View" arrow>
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                onClick={() => handleView(row['Booking ID'] || row.bookingId)}
-                                sx={{ minWidth: 'auto', padding: '6px' }}
-                              >
-                                <VisibilityIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Edit" arrow>
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                onClick={() => handleUpdate(row['Booking ID'] || row.bookingId)}
-                                sx={{ minWidth: 'auto', padding: '6px' }}
-                              >
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Cancel" arrow>
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                sx={{ minWidth: 'auto', padding: '6px' }}
-                              >
-                                <CancelScheduleSendIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Delete" arrow>
-                              <IconButton
-                                size="small"
-                                color="error"
-                                onClick={() => handleDelete(row['Booking ID'] || row.bookingId)}
-                                sx={{ minWidth: 'auto', padding: '6px' }}
-                              >
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Send Email" arrow>
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                onClick={() =>
-                                  handleEmailSend(row["Booking ID"] || row.bookingId)
-                                }
-                                sx={{ padding: "6px" }}
-                              >
-                                <SendIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Send WhatsApp" arrow>
-                              <IconButton
-                                size="small"
-                                sx={{
-                                  color: "#128C7E",
-                                  backgroundColor: "#E6F4EA",
-                                  padding: "6px",
-                                  "&:hover": {
-                                    backgroundColor: "#CDEEDB",
-                                    color: "#075E54",
-                                  }
-                                }}
-                                onClick={() => handleWhatsAppSend(row)}
-                              >
-                                <WhatsAppIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Slip" arrow>
-                              <IconButton
-                                size="small"
-                                color="secondary"
-                                onClick={() => handleSlipClick(row['Booking ID'] || row.bookingId)}
-                                sx={{ minWidth: 'auto', padding: '6px' }}
-                              >
-                                <ReceiptIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            {/* 📤 Upload PDF (ONLY ACTIVE DELIVERIES TAB) */}
-                            {selectedList === "active" && (
-                              <Tooltip title="Upload PDF" arrow>
-                                <IconButton
-                                  size="small"
-                                  color="success"
-                                  onClick={() => handleUploadClick(row["Booking ID"] || row.bookingId)}
-                                  sx={{ minWidth: 'auto', padding: '6px' }}
-                                >
-                                  <UploadIcon fontSize="small" color="#000" />
-                                </IconButton>
-                              </Tooltip>
-                            )}
+                          <Box
+  sx={{
+    display: "flex",
+    gap: 0.5,
+    flexWrap: "nowrap",
+  }}
+>
+ {selectedList === "cancelled" ? (
+    <>
+      {/* ✅ Cancel case → sirf Slip + Delete */}
 
-                            {/* 👁 Preview Uploaded PDF */}
-                            {selectedList === "active" && row.quotationPdf && (
-                              <Tooltip title="Preview PDF" arrow>
-                                <IconButton
-                                  size="small"
-                                  color="info"
-                                  onClick={() => handlePdfPreview(row.quotationPdf)}
-                                  sx={{ minWidth: 'auto', padding: '6px' }}
-                                >
-                                  <PictureAsPdfIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            )}
+      <Tooltip title="Slip" arrow>
+        <IconButton
+          size="small"
+          color="secondary"
+          onClick={() =>
+            handleSlipClick(row["Booking ID"] || row.bookingId)
+          }
+        >
+          <ReceiptIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
 
-                          </Box>
+      <Tooltip title="Delete" arrow>
+        <IconButton
+          size="small"
+          color="error"
+          onClick={() =>
+            handleDelete(row["Booking ID"] || row.bookingId)
+          }
+        >
+          <DeleteIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    </>
+  ) : (
+    <>
+      {/* ✅ TUMHARA ORIGINAL CODE SAME */}
+
+      <Tooltip title="View" arrow>
+        <IconButton
+          size="small"
+          color="primary"
+          onClick={() => handleView(row["Booking ID"] || row.bookingId)}
+        >
+          <VisibilityIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+
+      <Tooltip title="Edit" arrow>
+        <IconButton
+          size="small"
+          color="primary"
+          onClick={() => handleUpdate(row["Booking ID"] || row.bookingId)}
+        >
+          <EditIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+
+      <Tooltip title="Cancel" arrow>
+        <IconButton
+          size="small"
+          color="primary"
+          onClick={() => handleCancel(row["Booking ID"] || row.bookingId)}
+        >
+          <CancelScheduleSendIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+
+      <Tooltip title="Delete" arrow>
+        <IconButton
+          size="small"
+          color="error"
+          onClick={() => handleDelete(row["Booking ID"] || row.bookingId)}
+        >
+          <DeleteIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+
+      <Tooltip title="Send Email" arrow>
+        <IconButton
+          size="small"
+          color="primary"
+          onClick={() =>
+            handleEmailSend(row["Booking ID"] || row.bookingId)
+          }
+        >
+          <SendIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+
+      <Tooltip title="Slip" arrow>
+        <IconButton
+          size="small"
+          color="secondary"
+          onClick={() =>
+            handleSlipClick(row["Booking ID"] || row.bookingId)
+          }
+        >
+          <ReceiptIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+
+      {/* 📤 Upload */}
+      {selectedList === "active" && (
+        <Tooltip title="Upload PDF" arrow>
+          <IconButton
+            size="small"
+            color="success"
+            onClick={() =>
+              handleUploadClick(row["Booking ID"] || row.bookingId)
+            }
+          >
+            <UploadIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      )}
+
+      {/* 👁 Preview */}
+      {selectedList === "active" && row.quotationPdf && (
+        <Tooltip title="Preview PDF" arrow>
+          <IconButton
+            size="small"
+            color="info"
+            onClick={() => handlePdfPreview(row.quotationPdf)}
+          >
+            <PictureAsPdfIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      )}
+    </>
+  )}
+</Box>
                         </TableCell>
                       </>
                     )}

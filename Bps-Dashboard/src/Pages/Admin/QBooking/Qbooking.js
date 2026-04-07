@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import {
     Box,
     Button,
@@ -16,6 +16,7 @@ import {
     Chip,
     CircularProgress,
     Typography,
+    TextField
 } from "@mui/material";
 import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
@@ -29,20 +30,31 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import SendIcon from "@mui/icons-material/Send";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchIncomingQuotations } from "../../../features/quotation/quotationSlice";
+import { fetchIncomingQuotations, viewBookingById, clearViewedBooking } from "../../../features/quotation/quotationSlice";
+import QSlipModal from "../../../Components/QSlipModal";
+import { fetchStations } from "../../../features/stations/stationSlice";
 
 const QBookingForm = () => {
     const dispatch = useDispatch();
-
+    const booking = useSelector((state) => state.quotations.viewedBooking);
+    const [openSlip, setOpenSlip] = useState(false);
     // ✅ Use the correct store key
     const { quotationsList, loading, error } = useSelector(
         (state) => state.quotations
     );
+    const { list: stationList } = useSelector((state) => state.stations);
 
     const [startDate, setStartDate] = useState(null);
     const [endDate, setEndDate] = useState(null);
     const [anchorEl, setAnchorEl] = useState(null);
     const open = Boolean(anchorEl);
+    const [searchText, setSearchText] = useState("");
+const [startStation, setStartStation] = useState("");
+const [endStation, setEndStation] = useState("");
+
+useEffect(() => {
+  dispatch(fetchStations(localStorage.getItem("token")));
+}, []);
 
     const handleSearch = () => {
         if (!startDate || !endDate) {
@@ -71,6 +83,24 @@ const QBookingForm = () => {
             month: '2-digit',
             year: 'numeric'
         });
+    };
+
+    const handleOpenSlip = (row) => {
+        const bookingId = row.bookingId; // ✅ correct field
+
+        dispatch(viewBookingById(bookingId))
+            .unwrap()
+            .then(() => {
+                setOpenSlip(true); // modal open
+            })
+            .catch((err) => {
+                console.log("Error:", err);
+            });
+    };
+
+    const handleCloseSlip = () => {
+        setOpenSlip(false);
+        dispatch(clearViewedBooking());
     };
 
     // Get receipt numbers and ref numbers
@@ -306,6 +336,28 @@ const QBookingForm = () => {
         handleDownloadMenuClose();
     };
 
+    const filteredList = quotationsList.filter((row) => {
+  const search = searchText.toLowerCase();
+
+  const receiptNos = row.productDetails?.map(i => i.receiptNo).join(" ") || "";
+
+  const matchSearch =
+    row.bookingId?.toLowerCase().includes(search) ||
+    receiptNos.toLowerCase().includes(search) ||
+    (row.fromCustomerName || "").toLowerCase().includes(search) ||
+    (row.toCustomerName || "").toLowerCase().includes(search);
+
+  const matchStart =
+    !startStation ||
+    (row.startStation?.stationName || "").toLowerCase() === startStation.toLowerCase();
+
+  const matchEnd =
+    !endStation ||
+    (row.endStation || "").toLowerCase() === endStation.toLowerCase();
+
+  return matchSearch && matchStart && matchEnd;
+});
+
     return (
         <Paper elevation={3} sx={{ p: 3, maxWidth: "95%", mx: "auto", mt: 4, overflowX: 'auto' }}>
             {/* Filters */}
@@ -336,6 +388,52 @@ const QBookingForm = () => {
                         <Button variant="outlined" onClick={handleSearch}>
                             Search
                         </Button>
+                        {quotationsList?.length > 0 && (
+  <>
+    {/* 🔍 Search */}
+    <TextField
+      size="small"
+      placeholder="Search Booking ID / Receipt / Sender / Receiver"
+      value={searchText}
+      onChange={(e) => setSearchText(e.target.value)}
+      sx={{ minWidth: 250 }}
+    />
+
+    {/* 🚀 Start Station */}
+    <TextField
+      select
+      size="small"
+      label="Start Station"
+      value={startStation}
+      onChange={(e) => setStartStation(e.target.value)}
+      sx={{ minWidth: 180 }}
+    >
+      <MenuItem value="">All</MenuItem>
+      {stationList?.map((s) => (
+        <MenuItem key={s.stationId} value={s.stationName}>
+          {s.stationName}
+        </MenuItem>
+      ))}
+    </TextField>
+
+    {/* 🚀 End Station */}
+    <TextField
+      select
+      size="small"
+      label="End Station"
+      value={endStation}
+      onChange={(e) => setEndStation(e.target.value)}
+      sx={{ minWidth: 180 }}
+    >
+      <MenuItem value="">All</MenuItem>
+      {stationList?.map((s) => (
+        <MenuItem key={s.stationId} value={s.stationName}>
+          {s.stationName}
+        </MenuItem>
+      ))}
+    </TextField>
+  </>
+)}
                     </Stack>
                 </LocalizationProvider>
 
@@ -369,6 +467,9 @@ const QBookingForm = () => {
             {/* Table */}
             {quotationsList?.length > 0 && (
                 <Box sx={{ overflowX: 'auto' }}>
+                     <Typography sx={{ mb: 1, fontWeight: "bold" }}>
+    Total Records: {filteredList.length}
+  </Typography>
                     <Table sx={{ minWidth: 1400 }}>
                         <TableHead sx={{ backgroundColor: "#1976d2" }}>
                             <TableRow>
@@ -390,7 +491,7 @@ const QBookingForm = () => {
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {quotationsList.map((row, index) => {
+                            {filteredList.map((row, index) => {
                                 const receiptRefDetails = getReceiptRefDetails(row.productDetails);
                                 const paymentStatus = getPaymentStatus(row.productDetails);
                                 const totalWeight = getTotalWeight(row.productDetails);
@@ -503,31 +604,22 @@ const QBookingForm = () => {
                                         </TableCell>
                                         <TableCell>
                                             <Stack direction="row" spacing={1}>
-                                                <Tooltip title="View Details">
-                                                    <IconButton color="primary" size="small">
-                                                        <VisibilityIcon fontSize="small" />
-                                                    </IconButton>
-                                                </Tooltip>
-                                                <Tooltip title="Edit">
-                                                    <IconButton color="primary" size="small">
-                                                        <EditIcon fontSize="small" />
-                                                    </IconButton>
-                                                </Tooltip>
-                                                <Tooltip title="Delete">
-                                                    <IconButton color="error" size="small">
-                                                        <DeleteIcon fontSize="small" />
-                                                    </IconButton>
-                                                </Tooltip>
                                                 <Tooltip title="Send">
                                                     <IconButton color="primary" size="small">
                                                         <SendIcon fontSize="small" />
                                                     </IconButton>
                                                 </Tooltip>
-                                                <Tooltip title="Receipt">
-                                                    <IconButton color="secondary" size="small">
-                                                        <ReceiptIcon fontSize="small" />
-                                                    </IconButton>
-                                                </Tooltip>
+                                                <Stack direction="row" spacing={1}>
+                                                    <Tooltip title="Receipt">
+                                                        <IconButton
+                                                            color="secondary"
+                                                            size="small"
+                                                            onClick={() => handleOpenSlip(row)}
+                                                        >
+                                                            <ReceiptIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                </Stack>
                                             </Stack>
                                         </TableCell>
                                     </TableRow>
@@ -537,6 +629,12 @@ const QBookingForm = () => {
                     </Table>
                 </Box>
             )}
+
+            <QSlipModal
+                open={openSlip}
+                handleClose={handleCloseSlip}
+                bookingData={booking}
+            />
 
             {/* No data message */}
             {quotationsList?.length === 0 && !loading && (

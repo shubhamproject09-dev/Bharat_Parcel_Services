@@ -34,14 +34,16 @@ const formatQuotations = (quotations) => {
       ? "Admin"
       : `Supervisor ${q.startStation?.stationName || ''}`,
     "Date": formatDateOnly(q.quotationDate),
-    "Name": q.customerId
-      ? `${q.customerId.firstName} ${q.customerId.lastName}`
-      : `${q.firstName || ""} ${q.lastName || ""}`.trim(),
+  "Name": q.fromCustomerName
+  || (q.customerId
+    ? `${q.customerId.firstName} ${q.customerId.lastName}`
+    : `${q.firstName || ""} ${q.lastName || ""}`.trim()),
     "pickup": q.startStation?.stationName || q.startStationName || 'N/A',
     "": "",
     "Name (Drop)": q.toCustomerName || "",
     "drop": q.endStation || "",
     "Contact": q.mobile || "",
+     "cancelReason": q.cancelReason || "-", 
     "Action": [
       { name: "View", icon: "view-icon", action: `/api/quotations/${q._id}` },
       { name: "Edit", icon: "edit-icon", action: `/api/quotations/edit/${q._id}` },
@@ -293,7 +295,8 @@ export const getBookingSummaryByDate = async (req, res) => {
     }
 
     const query = {
-      quotationDate: { $gte: from, $lte: to }
+      quotationDate: { $gte: from, $lte: to },
+      totalCancelled: { $eq: 0 }
     };
 
     if (user.role === "supervisor") {
@@ -361,51 +364,70 @@ export const getQuotationById = asyncHandler(async (req, res, next) => {
 // Update Quotation Controller
 export const updateQuotation = asyncHandler(async (req, res, next) => {
   const { bookingId } = req.params;
-  const updatedData = req.body;
 
-  // If productDetails is being updated, recalculate grandTotal
-  if (updatedData.productDetails) {
-    // Validate product details including insurance
-    for (const product of updatedData.productDetails) {
+  // ✅ ALWAYS destructure from req.body
+  const {
+    productDetails = [],
+    sTax = 0,
+    sgst = 0,
+    freight = 0,
+  } = req.body;
+
+  let calculatedGrandTotal;
+
+  // ✅ If productDetails updated → recalc totals
+  if (Array.isArray(productDetails) && productDetails.length > 0) {
+
+    // Validate insurance & vpp
+    for (const product of productDetails) {
       if (
-        (product.insurance !== undefined && (typeof product.insurance !== 'number' || product.insurance < 0)) ||
-        (product.vppAmount !== undefined && (typeof product.vppAmount !== 'number' || product.vppAmount < 0)) // ADD THIS
+        (product.insurance !== undefined && product.insurance < 0) ||
+        (product.vppAmount !== undefined && product.vppAmount < 0)
       ) {
-        return next(new ApiError(400, "Insurance and vppAmount must be non-negative numbers"));
+        return next(
+          new ApiError(400, "Insurance and vppAmount must be non-negative numbers")
+        );
       }
     }
-    // Get existing quotation to calculate with current tax rates
-    const existingQuotation = await Quotation.findOne({ bookingId });
-    if (existingQuotation) {
-      // ✅ 1. Base price (manual only)
-      const productValueTotal = productDetails.reduce(
-        (acc, item) => acc + Number(item.price || 0),
-        0
-      );
 
-      // ✅ 2. GST sirf price par
-      const taxAmount = (productValueTotal * (Number(sTax) || 0)) / 100;
-      const sgstAmount = (productValueTotal * (Number(sgst) || 0)) / 100;
+    // Base product total
+    const productValueTotal = productDetails.reduce(
+      (acc, item) => acc + Number(item.price || 0),
+      0
+    );
 
-      // ✅ 3. GRAND TOTAL (bilty included)
-      calculatedGrandTotal =
-        productValueTotal +
-        taxAmount +
-        sgstAmount +
-        (Number(freight) || 0);
-    }
+    // Tax only on product price
+    const sTaxAmount = (productValueTotal * Number(sTax)) / 100;
+    const sgstAmount = (productValueTotal * Number(sgst)) / 100;
+
+    calculatedGrandTotal =
+      productValueTotal +
+      sTaxAmount +
+      sgstAmount +
+      Number(freight || 0);
   }
 
+  // ✅ Merge calculatedGrandTotal safely
   const updatedQuotation = await Quotation.findOneAndUpdate(
     { bookingId },
-    updatedData,
+    {
+      ...req.body,
+      ...(calculatedGrandTotal !== undefined && {
+        grandTotal: calculatedGrandTotal,
+      }),
+    },
     { new: true }
   );
 
-  if (!updatedQuotation) return next(new ApiError(404, "Quotation not found"));
+  if (!updatedQuotation) {
+    return next(new ApiError(404, "Quotation not found"));
+  }
 
-  res.status(200).json(new ApiResponse(200, updatedQuotation, "Quotation updated successfully"));
+  res
+    .status(200)
+    .json(new ApiResponse(200, updatedQuotation, "Quotation updated successfully"));
 });
+
 
 // Delete Quotation Controller
 export const deleteQuotation = asyncHandler(async (req, res, next) => {
@@ -540,9 +562,17 @@ const getRevenueBookingFilter = (type, user) => {
 
 // Controller to get revenue details from quotations
 export const getRevenue = asyncHandler(async (req, res) => {
+  // 🔥 Base filter
   const filter = getRevenueBookingFilter(req.query.type, req.user);
 
-  const quotations = await Quotation.find(filter)
+  // 🔥 Cancelled remove (MAIN FIX)
+  const finalFilter = {
+    ...filter,
+    totalCancelled: { $eq: 0 }   // ✅ IMPORTANT
+  };
+
+  // 🔥 Fetch data
+  const quotations = await Quotation.find(finalFilter)
     .select(`
       bookingId
       quotationDate
@@ -581,6 +611,7 @@ export const getRevenue = asyncHandler(async (req, res) => {
     paymentStatus: q.paymentStatus || "Unpaid",
   }));
 
+  // 🔥 Final response
   res.status(200).json({
     totalRevenue: totalRevenue.toFixed(2),
     count: data.length,
@@ -588,22 +619,27 @@ export const getRevenue = asyncHandler(async (req, res) => {
   });
 });
 
-
 // Update Quotation Status Controller (query only, no cancel reason)
 export const updateQuotationStatus = asyncHandler(async (req, res, next) => {
   const { bookingId } = req.params;
   const { activeDelivery } = req.query;
+  const { cancelReason } = req.body;
 
   if (activeDelivery !== 'true' && activeDelivery !== 'false') {
-    return next(new ApiError(400, "activeDelivery must be 'true' or 'false' as a query param"));
+    return next(new ApiError(400, "activeDelivery must be 'true' or 'false'"));
   }
 
   const isActive = activeDelivery === 'true';
 
+  // ❗ अगर cancel कर रहे हो तो reason mandatory
+  if (!isActive && !cancelReason) {
+    return next(new ApiError(400, "Cancel reason is required"));
+  }
+
   const updateFields = {
     activeDelivery: isActive,
     totalCancelled: isActive ? 0 : 1,
-    cancelReason: isActive ? undefined : "", // Optional: reset or blank reason
+    cancelReason: isActive ? null : cancelReason, // ✅ STORE
   };
 
   const updatedQuotation = await Quotation.findOneAndUpdate(
@@ -616,8 +652,13 @@ export const updateQuotationStatus = asyncHandler(async (req, res, next) => {
     return next(new ApiError(404, "Quotation not found"));
   }
 
-  const statusMsg = isActive ? "Quotation marked as active" : "Quotation cancelled";
-  res.status(200).json(new ApiResponse(200, updatedQuotation, statusMsg));
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      updatedQuotation,
+      isActive ? "Quotation activated" : "Quotation cancelled with reason"
+    )
+  );
 });
 
 // Get List of Booking Requests (Not active, not cancelled)
@@ -766,6 +807,7 @@ export const getIncomingQuotations = asyncHandler(async (req, res) => {
     quotationDate: { $gte: from, $lte: to },
     isDelivered: false,
     activeDelivery: false,
+     totalCancelled: { $eq: 0 }
   };
 
   if (user.role === "supervisor") {
@@ -897,6 +939,47 @@ export const uploadQuotationPdf = asyncHandler(async (req, res) => {
     pdfUrl: uploadResult.secure_url,
     bookingId
   }, "Quotation PDF uploaded successfully"));
+});
+
+export const receiveToPayAmount = asyncHandler(async (req, res) => {
+  const { bookingId } = req.params;
+  const { amount } = req.body;
+
+  if (!amount || amount <= 0) {
+    throw new ApiError(400, "Valid amount required");
+  }
+
+  const quotation = await Quotation.findOne({ bookingId });
+
+  if (!quotation) {
+    throw new ApiError(404, "Quotation not found");
+  }
+
+  if (amount > quotation.deliveryPendingAmount) {
+    throw new ApiError(400, "Amount exceeds pending balance");
+  }
+
+  // ✅ update amounts
+  quotation.paidAmount += Number(amount);
+  quotation.deliveryPendingAmount -= Number(amount);
+
+  // ✅ history add
+  quotation.topayHistory.push({ amount });
+
+  // ✅ status update
+  if (quotation.paidAmount >= quotation.grandTotal) {
+    quotation.paymentStatus = "Paid";
+  } else {
+    quotation.paymentStatus = "Partial";
+  }
+
+  await quotation.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Payment received successfully",
+    data: quotation
+  });
 });
 
 

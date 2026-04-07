@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import {
     Box,
     Button,
@@ -14,6 +14,7 @@ import {
     MenuItem,
     Tooltip,
     Chip,
+    TextField 
 } from "@mui/material";
 import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
@@ -27,18 +28,30 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import SendIcon from "@mui/icons-material/Send";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchIncomingBookings } from "../../../features/booking/bookingSlice";
+import { fetchIncomingBookings, viewBookingById } from "../../../features/booking/bookingSlice";
+import { fetchStations } from "../../../features/stations/stationSlice";
+import SlipModal from "../../../Components/SlipModal";  
 
 const BookingForm = () => {
     const dispatch = useDispatch();
-    const { incomingList, loading, error } = useSelector(
+    const [openModal, setOpenModal] = useState(false);
+    const [selectedBooking, setSelectedBooking] = useState(null);
+    const { incomingList, loading, error, viewedBooking } = useSelector(
         (state) => state.bookings
     );
+    const { list: stationList } = useSelector((state) => state.stations);
 
     const [startDate, setStartDate] = useState(null);
     const [endDate, setEndDate] = useState(null);
     const [anchorEl, setAnchorEl] = useState(null);
     const open = Boolean(anchorEl);
+    const [searchText, setSearchText] = useState("");
+    const [startStation, setStartStation] = useState("");
+const [endStation, setEndStation] = useState("");
+
+useEffect(() => {
+  dispatch(fetchStations(localStorage.getItem("token")));
+}, []);
 
     const handleSearch = () => {
         if (!startDate || !endDate) {
@@ -98,6 +111,21 @@ const BookingForm = () => {
             paid: hasPaid ? "Paid" : "-",
             topay: hasTopay ? "Topay" : "-"
         };
+    };
+
+    const handleOpenModal = async (id) => {
+        try {
+            const res = await dispatch(viewBookingById(id)).unwrap();
+            setOpenModal(true);
+
+        } catch (err) {
+            console.error("Failed to fetch booking:", err);
+        }
+    };
+
+    const handleCloseModal = () => {
+        setOpenModal(false);
+        setSelectedBooking(null);
     };
 
     const handleDownloadPDF = () => {
@@ -300,6 +328,28 @@ const BookingForm = () => {
         return items.reduce((sum, item) => sum + (item.weight || 0), 0);
     };
 
+    const filteredList = incomingList.filter((row) => {
+  const search = searchText.toLowerCase();
+
+  const receiptNos = row.items?.map(i => i.receiptNo).join(" ") || "";
+
+  const matchSearch =
+    row.bookingId?.toLowerCase().includes(search) ||
+    receiptNos.toLowerCase().includes(search) ||
+    (row.senderName || "").toLowerCase().includes(search) ||
+    (row.receiverName || "").toLowerCase().includes(search);
+
+  const matchStart =
+    !startStation ||
+    (row.startStation?.stationName || "").toLowerCase() === startStation.toLowerCase();
+
+  const matchEnd =
+    !endStation ||
+    (row.endStation?.stationName || "").toLowerCase() === endStation.toLowerCase();
+
+  return matchSearch && matchStart && matchEnd;
+});
+
     return (
         <Paper elevation={3} sx={{ p: 3, maxWidth: "95%", mx: "auto", mt: 4, overflowX: 'auto' }}>
             {/* Filters */}
@@ -330,6 +380,52 @@ const BookingForm = () => {
                         <Button variant="outlined" onClick={handleSearch}>
                             Search
                         </Button>
+                        {incomingList.length > 0 && (
+  <TextField
+    size="small"
+    placeholder="Search Booking ID / Receipt / Sender / Receiver"
+    value={searchText}
+    onChange={(e) => setSearchText(e.target.value)}
+    sx={{ minWidth: 300 }}
+  />
+)}
+{incomingList.length > 0 && (
+  <>
+    {/* Start Station */}
+    <TextField
+      select
+      size="small"
+      label="Start Station"
+      value={startStation}
+      onChange={(e) => setStartStation(e.target.value)}
+      sx={{ minWidth: 180 }}
+    >
+      <MenuItem value="">All</MenuItem>
+      {stationList?.map((s) => (
+        <MenuItem key={s.stationId} value={s.stationName}>
+          {s.stationName}
+        </MenuItem>
+      ))}
+    </TextField>
+
+    {/* End Station */}
+    <TextField
+      select
+      size="small"
+      label="End Station"
+      value={endStation}
+      onChange={(e) => setEndStation(e.target.value)}
+      sx={{ minWidth: 180 }}
+    >
+      <MenuItem value="">All</MenuItem>
+      {stationList?.map((s) => (
+        <MenuItem key={s.stationId} value={s.stationName}>
+          {s.stationName}
+        </MenuItem>
+      ))}
+    </TextField>
+  </>
+)}
                     </Stack>
                 </LocalizationProvider>
 
@@ -362,6 +458,9 @@ const BookingForm = () => {
 
             {incomingList.length > 0 && (
                 <Box sx={{ overflowX: 'auto' }}>
+                    <div style={{ marginBottom: "10px", fontWeight: "bold" }}>
+    Total Records: {filteredList.length}
+  </div>
                     <Table sx={{ minWidth: 1400 }}>
                         <TableHead sx={{ backgroundColor: "#1976d2" }}>
                             <TableRow>
@@ -382,7 +481,7 @@ const BookingForm = () => {
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {incomingList.map((row, index) => {
+                            {filteredList.map((row, index) => {
                                 const receiptRefDetails = getReceiptRefDetails(row.items);
                                 const paymentStatus = getPaymentStatus(row.items);
 
@@ -487,31 +586,22 @@ const BookingForm = () => {
                                         </TableCell>
                                         <TableCell>
                                             <Stack direction="row" spacing={1}>
-                                                <Tooltip title="View Details">
-                                                    <IconButton color="primary" size="small">
-                                                        <VisibilityIcon fontSize="small" />
-                                                    </IconButton>
-                                                </Tooltip>
-                                                <Tooltip title="Edit">
-                                                    <IconButton color="primary" size="small">
-                                                        <EditIcon fontSize="small" />
-                                                    </IconButton>
-                                                </Tooltip>
-                                                <Tooltip title="Delete">
-                                                    <IconButton color="error" size="small">
-                                                        <DeleteIcon fontSize="small" />
-                                                    </IconButton>
-                                                </Tooltip>
                                                 <Tooltip title="Send">
                                                     <IconButton color="primary" size="small">
                                                         <SendIcon fontSize="small" />
                                                     </IconButton>
                                                 </Tooltip>
-                                                <Tooltip title="Receipt">
-                                                    <IconButton color="secondary" size="small">
-                                                        <ReceiptIcon fontSize="small" />
-                                                    </IconButton>
-                                                </Tooltip>
+                                                <Stack direction="row" spacing={1}>
+                                                    <Tooltip title="View Receipt">
+                                                        <IconButton
+                                                            color="info"
+                                                            size="small"
+                                                            onClick={() => handleOpenModal(row.bookingId)}
+                                                        >
+                                                            <ReceiptIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                </Stack>
                                             </Stack>
                                         </TableCell>
                                     </TableRow>
@@ -521,6 +611,11 @@ const BookingForm = () => {
                     </Table>
                 </Box>
             )}
+            <SlipModal
+                open={openModal}
+                handleClose={() => setOpenModal(false)}
+                bookingData={viewedBooking}
+            />
         </Paper>
     );
 };

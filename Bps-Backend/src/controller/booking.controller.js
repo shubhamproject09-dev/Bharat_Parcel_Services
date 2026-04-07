@@ -3,8 +3,7 @@ import Station from '../model/manageStation.model.js';
 import { Customer } from '../model/customer.model.js';
 import nodemailer from 'nodemailer';
 import { User } from '../model/user.model.js'
-import { sendBookingConfirmation } from './whatsappController.js'
-import { sendWhatsAppMessage } from '../services/whatsappServices.js'
+import { sendBookingTemplate } from './whatsappController.js'
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { generateInvoiceNumber } from "../utils/invoiceNumber.js";
 import { generateInvoicePDF } from "../utils/invoiceGenerator.js";
@@ -345,28 +344,28 @@ export const sendBookingAcknowledgementEmail = async (email, booking) => {
     to: email,
     subject: `Booking Request Received for-${booking.bookingId}  Pending Confirmation`,
     html: `
-      <h2>Booking Request Received</h2>
+        <h2>Booking Request Received</h2>
 
-      <p>Dear Customer,</p>
+        <p>Dear Customer,</p>
 
-      <p>Thank you for submitting your parcel booking request with us.</p>
-      
-      <p>Your request has been received and is currently <strong>awaiting admin approval</strong>.</p>
+        <p>Thank you for submitting your parcel booking request with us.</p>
+        
+        <p>Your request has been received and is currently <strong>awaiting admin approval</strong>.</p>
 
-      <h3>Pickup Address:</h3>
-      <p>${senderLocality}, ${fromCity}, ${fromState}, ${senderPincode}</p>
+        <h3>Pickup Address:</h3>
+        <p>${senderLocality}, ${fromCity}, ${fromState}, ${senderPincode}</p>
 
-      <h3>Delivery Address:</h3>
-      <p>${receiverLocality}, ${toCity}, ${toState}, ${toPincode}</p>
+        <h3>Delivery Address:</h3>
+        <p>${receiverLocality}, ${toCity}, ${toState}, ${toPincode}</p>
 
-      <h3>Booking Summary:</h3>
-      <p>Total Weight: ${totalWeight} kg</p>
-      <p>Estimated Amount: ₹${grandTotal}</p>
+        <h3>Booking Summary:</h3>
+        <p>Total Weight: ${totalWeight} kg</p>
+        <p>Estimated Amount: ₹${grandTotal}</p>
 
-      <p>You will receive another email with confirmation and tracking ID once your request is approved.</p>
+        <p>You will receive another email with confirmation and tracking ID once your request is approved.</p>
 
-      <p>Best regards, <br /> BharatParcel Team</p>
-    `
+        <p>Best regards, <br /> BharatParcel Team</p>
+      `
   };
 
   try {
@@ -400,26 +399,26 @@ export const sendBookingEmail = async (email, booking) => {
     to: email,
     subject: `Booking Confirmation - ${booking.bookingId}`,
     html: `
-      <h2>Booking Confirmation</h2>
+        <h2>Booking Confirmation</h2>
 
-      <p>Dear <strong>${firstName} ${lastName}</strong>,</p>
+        <p>Dear <strong>${firstName} ${lastName}</strong>,</p>
 
-      <p>Your booking with <strong>Booking ID: ${booking.bookingId}</strong> has been successfully created.</p>
+        <p>Your booking with <strong>Booking ID: ${booking.bookingId}</strong> has been successfully created.</p>
 
-      <h3>From Address:</h3>
-      <p>${senderLocality}, ${fromCity}, ${fromState}, ${senderPincode}</p>
+        <h3>From Address:</h3>
+        <p>${senderLocality}, ${fromCity}, ${fromState}, ${senderPincode}</p>
 
-      <h3>To Address:</h3>
-      <p>${receiverLocality}, ${toCity}, ${toState}, ${toPincode}</p>
+        <h3>To Address:</h3>
+        <p>${receiverLocality}, ${toCity}, ${toState}, ${toPincode}</p>
 
-      <h3>Product Details:</h3>
-      <p>Weight: ${totalWeight} kg</p>
-      <p>Amount: ₹${grandTotal}</p>
+        <h3>Product Details:</h3>
+        <p>Weight: ${totalWeight} kg</p>
+        <p>Amount: ₹${grandTotal}</p>
 
-      <p>Thank you for choosing our service.</p>
+        <p>Thank you for choosing our service.</p>
 
-      <p>Best regards, <br /> BharatParcel Team</p>
-    `
+        <p>Best regards, <br /> BharatParcel Team</p>
+      `
   };
 
   try {
@@ -633,7 +632,7 @@ export const getBookingStatusList = async (req, res) => {
     console.log('Booking filter:', JSON.stringify(filter, null, 2)); // Debug log
 
     const bookings = await Booking.find(filter)
-      .select('bookingId orderId firstName lastName senderName receiverName bookingDate mobile startStation endStation requestedByRole createdByRole isDeleted items quotationPdf') // Added isDeleted to select
+      .select('bookingId orderId firstName lastName senderName receiverName bookingDate mobile startStation endStation requestedByRole createdByRole isDeleted items quotationPdf cancelReason') // Added isDeleted to select
       .populate('startStation endStation', 'stationName')
       .populate('createdByRole', 'role')
       .lean();
@@ -644,7 +643,7 @@ export const getBookingStatusList = async (req, res) => {
       console.warn(`Found ${deletedBookings.length} deleted bookings in results:`);
       console.warn(deletedBookings.map(b => ({
         bookingId: b.bookingId,
-        isDeleted: b.isDeleted
+        isDeleted: b.isDeletedy
       })));
     }
 
@@ -680,6 +679,7 @@ export const getBookingStatusList = async (req, res) => {
       drop: b.endStation?.stationName || 'N/A',
       contact: b.mobile || 'N/A',
       bookingId: b.bookingId,
+      cancelReason: b.cancelReason || "",
       action: {
         view: `/bookings/${b.bookingId}`,
         edit: `/bookings/edit/${b.bookingId}`,
@@ -775,10 +775,19 @@ export const rejectThirdPartyBookingRequest = async (req, res) => {
 export const cancelBooking = async (req, res) => {
   try {
     const { bookingId } = req.params;
+    const { reason } = req.body;   // ✅ reason le liya
+
+    if (!reason) {
+      return res.status(400).json({ message: "Cancel reason required" });
+    }
 
     const booking = await Booking.findOneAndUpdate(
       { bookingId },
-      { $inc: { totalCancelled: 1 }, activeDelivery: false },
+      {
+        $inc: { totalCancelled: 1 },
+        activeDelivery: false,
+        cancelReason: reason   // ✅ save reason
+      },
       { new: true }
     ).populate('startStation endStation', 'stationName');
 
@@ -786,12 +795,17 @@ export const cancelBooking = async (req, res) => {
       return res.status(404).json({ message: 'Booking not found' });
     }
 
-    res.json({ message: 'Booking cancelled successfully', booking });
+    res.json({
+      message: 'Booking cancelled successfully',
+      booking
+    });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: error.message });
   }
 };
+
 const getRevenueBookingFilter = (type, user) => {
   const base = getBookingFilterByType(type, user);
   if (base.$and) {
@@ -997,7 +1011,8 @@ export const overallBookingSummary = async (req, res) => {
           bookingDate: {
             $gte: new Date(fromDate),
             $lte: new Date(endDate)
-          }
+          },
+  totalCancelled: { $eq: 0 }
         }
       },
       {
@@ -1063,7 +1078,8 @@ export const getBookingSummaryByDate = async (req, res) => {
       bookingDate: {
         $gte: from,
         $lte: to
-      }
+      },
+  totalCancelled: { $eq: 0 } 
     };
 
     if (user.role === "supervisor") {
@@ -1436,152 +1452,103 @@ export const getCADetailsSummary = async (req, res) => {
 
 export const generateInvoiceByCustomer = async (req, res) => {
   try {
-    const { customerName, fromDate, toDate } = req.body;
+    const { customerName, fromDate, toDate, invoiceType } = req.body;
 
     if (!customerName || !fromDate || !toDate) {
-      return res.status(400).json({
-        message: "customerName, fromDate, and toDate are required",
-      });
+      return res.status(400).json({ message: "Required fields missing" });
     }
 
     const from = new Date(fromDate);
     const to = new Date(toDate);
     to.setHours(23, 59, 59, 999);
 
-    // ✅ Fetch all delivered bookings (either sender or receiver)
+    // 1️⃣ Get delivered bookings
     const bookings = await Booking.find({
-      $or: [
-        { receiverName: { $regex: customerName, $options: "i" } },
-        { senderName: { $regex: customerName, $options: "i" } },
-      ],
       bookingDate: { $gte: from, $lte: to },
       isDelivered: true,
-    })
-      .populate("startStation")
-      .populate("customerId")
-      .sort({ bookingDate: 1 });
+      "items.toPay": invoiceType
+    }).populate("startStation");
 
     if (!bookings.length) {
-      return res.status(404).json({
-        message: "No delivered bookings found for this party in the given date range",
-        searchedName: customerName,
-      });
+      return res.status(404).json({ message: "No bookings found" });
     }
-    const normalize = (str = "") =>
-      str.toLowerCase().replace(/\s+/g, " ").trim();
 
-    const searchName = normalize(customerName);
+    const normalize = (s = "") =>
+      s.toLowerCase().replace(/\s+/g, " ").trim();
 
-    // ✅ Step 1: Determine billing for each booking
-    const filteredBookings = bookings.map((booking) => {
-      const hasToPayItem = booking.items.some((i) => i.toPay === "toPay");
-      const hasPaidItem = booking.items.some((i) => i.toPay === "paid");
+    const search = normalize(customerName);
 
-      let billingName = booking.receiverName;
-      let billingGst = booking.receiverGgt;
-      let billingAddress = booking.receiverLocality;
-      let billingType = "receiver (toPay)";
+    // 2️⃣ Decide BILL TO per booking
+    const invoiceBookings = bookings
+      .map(b => {
+        const item = b.items?.[0];
+        if (!item) return null;
 
-      if (hasPaidItem && !hasToPayItem) {
-        billingName = booking.senderName;
-        billingGst = booking.senderGgt;
-        billingAddress = booking.senderLocality;
-        billingType = "sender (paid)";
-      }
+        // PAID → Sender
+        if (item.toPay === "paid" && normalize(b.senderName).includes(search)) {
+          return {
+            ...b.toObject(),
+            billToName: b.senderName,
+            billToAddress: b.senderLocality,
+            billToGst: b.senderGgt,
+          };
+        }
 
-      return {
-        ...booking.toObject(),
-        billingName,
-        billingGst,
-        billingAddress,
-        billingType,
-      };
-    });
+        // TOPAY → Receiver
+        if (item.toPay === "toPay" && normalize(b.receiverName).includes(search)) {
+          return {
+            ...b.toObject(),
+            billToName: b.receiverName,
+            billToAddress: b.receiverLocality,
+            billToGst: b.receiverGgt,
+          };
+        }
 
-    // ✅ Step 2: Filter to only include bookings where customer is the billing party
-    const customerBookings = filteredBookings.filter(b => {
-      const billing = normalize(b.billingName);
-      const sender = normalize(b.senderName);
-      const receiver = normalize(b.receiverName);
+        // TOPAY → sender select kare, receiver bill bane
+        // if (item.toPay === "toPay" && normalize(b.senderName).includes(search)) {
+        //   return {
+        //     ...b.toObject(),
+        //     billToName: b.receiverName,
+        //     billToAddress: b.receiverLocality,
+        //     billToGst: b.receiverGgt,
+        //   };
+        // }
 
-      return (
-        billing.includes(searchName) ||
-        sender.includes(searchName) ||
-        receiver.includes(searchName)
-      );
-    });
+        return null;
+      })
+      .filter(Boolean);
 
-    if (!customerBookings.length) {
+    if (!invoiceBookings.length) {
       return res.status(404).json({
-        message: "No invoice-eligible bookings found for this customer",
-        searchedName: customerName,
-        suggestion: "Check spelling / sender / receiver / billing name",
-        availableParties: [...new Set(filteredBookings.map(b => ({
-          billing: b.billingName,
-          sender: b.senderName,
-          receiver: b.receiverName
-        })))]
+        message: "No invoice data for selected customer"
       });
     }
 
-    // ✅ Step 3: Debug log
-    console.log("Final billing information for PDF:");
-    customerBookings.forEach((b) => {
-      console.log(`Booking ${b.bookingId}:`);
-      console.log(`  - Billing Name: ${b.billingName}`);
-      console.log(`  - Billing Type: ${b.billingType}`);
-      console.log(`  - Sender: ${b.senderName}`);
-      console.log(`  - Receiver: ${b.receiverName}`);
-    });
-
-    // ✅ Step 4: Pick reference booking for header details
-    const headerBooking = customerBookings[0];
-
-    // ✅ Step 5: Define header details
-    const billingName = headerBooking.billingName;
-    const billingGst = headerBooking.billingGst;
-    const billingAddress = headerBooking.billingAddress;
-    const billingState = headerBooking.toState || headerBooking.fromState || "N/A";
-
-    console.log("📦 INVOICE HEADER:");
-    console.log({
-      billingName,
-      billingGst,
-      billingAddress,
-      billingState,
-    });
-
-    // ✅ Step 6: Generate invoice number & update bookings
+    // 3️⃣ Invoice number
     const invoiceNo = await generateInvoiceNumber(
-      headerBooking?.startStation?.stationName || "DEL"
+      invoiceBookings[0]?.startStation?.stationName || "DEL"
     );
+
     const billDate = new Date();
 
-    await Booking.updateMany(
-      { _id: { $in: customerBookings.map((b) => b._id) } },
-      { $set: { invoiceNo, billDate } }
-    );
-
-    // ✅ Step 7: Generate PDF
+    // 4️⃣ Generate PDF
     const pdfBuffer = await generateInvoicePDF({
-      bookings: customerBookings,
+      bookings: invoiceBookings,
       invoiceNo,
       billDate,
-      billingName,
-      billingGst,
-      billingAddress,
-      billingState,
     });
 
+    // 5️⃣ SEND PDF (IMPORTANT)
     res.set({
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="${customerName}_Invoice.pdf"`,
     });
 
     res.send(pdfBuffer);
+
   } catch (err) {
-    console.error("❌ Error generating invoice:", err);
-    res.status(500).json({ message: err.message || "Server Error" });
+    console.error(err);
+    res.status(500).json({ message: err.message });
   }
 };
 
@@ -1653,6 +1620,7 @@ export const getAllCustomersPendingAmounts = async (req, res) => {
           quantity: item.quantity,
           weight: item.weight,
           insurance: item.insurance,
+          insuranceAmount: item.insuranceAmount || 0,
           vppAmount: item.vppAmount,
           toPay: item.toPay,
           amount: item.amount
@@ -1902,7 +1870,10 @@ export const getIncomingBookings = async (req, res) => {
     }
 
     const dateFilter = {
-      deliveryDate: { $gte: new Date(fromDate), $lte: new Date(toDate) }
+      bookingDate: {
+        $gte: new Date(fromDate),
+        $lte: new Date(toDate)
+      }
     };
 
     // let bookingFilter = { ...dateFilter };

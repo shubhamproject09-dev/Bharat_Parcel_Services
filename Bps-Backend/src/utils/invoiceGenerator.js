@@ -92,10 +92,43 @@ const calculateRowHeight = (doc, row, widths) => {
 };
 
 // =========================
+// 🔹 Page Border Helper
+// =========================
+const ensureSpace = (doc, y, requiredSpace, pageContentStartYRef) => {
+    const pageBottom = doc.page.height - 40;
+
+    if (y + requiredSpace > pageBottom) {
+        drawPageBorder(doc, pageContentStartYRef.value, y);
+        doc.addPage();
+        y = 60;
+        pageContentStartYRef.value = y;
+    }
+    return y;
+};
+const drawPageBorder = (doc, startY, endY) => {
+    const pageBorderX = 40;
+    const pageBorderWidth = 520;
+
+    doc.rect(
+        pageBorderX,
+        startY,
+        pageBorderWidth,
+        endY - startY
+    ).lineWidth(1).strokeColor("black").stroke();
+};
+
+
+// =========================
 // 🧾 Generate Invoice PDF (Clean Black & White Design)
 // =========================
 export const generateInvoicePDF = async (data) => {
     const { bookings = [], invoiceNo, billDate } = data;
+
+    // ✅ Filter only paid bookings
+    // ✅ Allow both PAID & TOPAY
+    if (!bookings || bookings.length === 0) {
+        throw new Error("No bookings available for invoice generation.");
+    }
     const booking = bookings[0];
     const station = resolveStationHeader(booking);
 
@@ -145,7 +178,7 @@ export const generateInvoicePDF = async (data) => {
 
         y += 40;
 
-        const contentStartY = y;
+        let pageContentStartYRef = { value: y };  // 🔥 per-page border start
 
         // ================= BILL TO & INVOICE DETAILS =================
         doc.moveTo(300, y).lineTo(300, y + 95).lineWidth(0.7).strokeColor('black').stroke();
@@ -157,29 +190,46 @@ export const generateInvoicePDF = async (data) => {
         doc.font("Helvetica-Bold").fontSize(10).text("BILL TO", 45, leftY);
         leftY += 16;
 
-        // Sender Name (BOLD)
-        doc.font("Helvetica-Bold").fontSize(9)
-            .text(`${booking.senderName}`, 45, leftY, { width: 240 });
+        // 🔥 Decide billing party based on toPay
+        const payType = booking.items?.[0]?.toPay;
 
-        leftY += doc.heightOfString(`${booking.senderName}`, { width: 240 }) + 4;
+        const billToName =
+            payType === "paid"
+                ? booking.senderName
+                : booking.receiverName;
+
+        const billToAddress =
+            payType === "paid"
+                ? booking.senderLocality
+                : booking.receiverLocality;
+
+        const billToGst =
+            payType === "paid"
+                ? booking.senderGgt
+                : booking.receiverGgt;
+
+        // Name (BOLD)
+        doc.font("Helvetica-Bold").fontSize(9)
+            .text(billToName, 45, leftY, { width: 240 });
+
+        leftY += doc.heightOfString(billToName, { width: 240 }) + 4;
         doc.moveTo(45, leftY).lineTo(285, leftY).lineWidth(0.3).stroke();
 
-        // Address (auto wrap safe)
+        // Address
         leftY += 4;
         doc.font("Helvetica").fontSize(9)
-            .text(`${booking.senderLocality}`, 45, leftY, { width: 240 });
+            .text(billToAddress, 45, leftY, { width: 240 });
 
-        leftY += doc.heightOfString(`${booking.senderLocality}`, { width: 240 }) + 4;
+        leftY += doc.heightOfString(billToAddress, { width: 240 }) + 4;
         doc.moveTo(45, leftY).lineTo(285, leftY).lineWidth(0.3).stroke();
 
         // GSTIN
         leftY += 4;
         doc.font("Helvetica").fontSize(9)
-            .text(`GSTIN: ${booking.senderGgt || 'N/A'}`, 45, leftY, { width: 240 });
+            .text(`GSTIN: ${billToGst || "N/A"}`, 45, leftY, { width: 240 });
 
         leftY += 12;
         doc.moveTo(45, leftY).lineTo(285, leftY).lineWidth(0.3).stroke();
-
 
         // ================= INVOICE DETAILS =================
         doc.font("Helvetica-Bold").fontSize(10)
@@ -303,8 +353,10 @@ export const generateInvoicePDF = async (data) => {
             const hgt = calculateRowHeight(doc, row, widths);
 
             if (y + hgt > 760) {
+                drawPageBorder(doc, pageContentStartYRef.value, y);
                 doc.addPage();
                 y = 60;
+                pageContentStartYRef.value = y;
             }
 
             // Draw row border
@@ -381,37 +433,39 @@ export const generateInvoicePDF = async (data) => {
         y += 45;
 
         // Authorized Signatory section
-        y += 50;
-        doc.moveTo(350, y).lineTo(550, y).lineWidth(0.5).strokeColor('black').stroke();
-        doc.font("Helvetica-Bold").fontSize(9).fillColor('black')
-            .text("For Bharat Parcel Services Pvt. Ltd.", 380, y + 10, { width: 170, align: "center" });
+        // Authorized Signatory section
+        y = ensureSpace(doc, y, 90, pageContentStartYRef);
+
+        y += 40;
+        doc.moveTo(350, y).lineTo(550, y).lineWidth(0.5).stroke();
+        doc.font("Helvetica-Bold").fontSize(9)
+            .text("For Bharat Parcel Services Pvt. Ltd.", 380, y + 10, {
+                width: 170,
+                align: "center"
+            });
 
         y += 25;
-        doc.moveTo(350, y).lineTo(550, y).lineWidth(0.5).strokeColor('black').stroke();
-        doc.font("Helvetica-Bold").fontSize(9).fillColor('black')
-            .text("AUTHORIZED SIGNATORY", 380, y + 10, { width: 170, align: "center" });
-
-        const contentEndY = y + 25;   // 🔥 continuous border end point
-
-        // ================= CONTINUOUS OUTER BORDER =================
-
-        const pageBorderX = 40;      // left margin
-        const pageBorderWidth = 520; // fixed content width
-        doc.rect(
-            pageBorderX,
-            contentStartY,
-            pageBorderWidth,
-            contentEndY - contentStartY + 10
-        ).lineWidth(1).strokeColor('black').stroke();
+        doc.moveTo(350, y).lineTo(550, y).lineWidth(0.5).stroke();
+        doc.text("AUTHORIZED SIGNATORY", 380, y + 10, {
+            width: 170,
+            align: "center"
+        });
 
         // Footer line
         y += 30;
 
         // Page number
-        doc.font("Helvetica").fontSize(7).fillColor('black')
-            .text(`Invoice ${invoiceNo} | Generated on: ${formatDate(new Date())
-                }`, 40, y + 10, { width: 520, align: "center" });
+        y = ensureSpace(doc, y, 30, pageContentStartYRef);
 
+        doc.font("Helvetica").fontSize(7)
+            .text(
+                `Invoice ${invoiceNo} | Generated on: ${formatDate(new Date())}`,
+                40,
+                y + 10,
+                { width: 520, align: "center" }
+            );
+        // 🔥 Close last page border
+        drawPageBorder(doc, pageContentStartYRef.value, y + 25);
         doc.end();
     });
 };

@@ -6,7 +6,8 @@ import { uploadToCloudinary } from "../utils/uploadPdfToCloudinary.js";
  */
 export const staffMulter = upload.fields([
     { name: "aadharCardPhoto", maxCount: 1 },
-    { name: "passportPhoto", maxCount: 1 }
+    { name: "passportPhoto", maxCount: 1 },
+    { name: "digitalSignature", maxCount: 1 }
 ]);
 
 /**
@@ -39,6 +40,19 @@ export const staffCloudinary = async (req, res, next) => {
             );
 
             req.staffDocs.passportPhoto = {
+                url: r.secure_url,
+                public_id: r.public_id
+            };
+        }
+
+        // Digital Signature
+        if (req.files.digitalSignature?.[0]) {
+            const r = await uploadToCloudinary(
+                req.files.digitalSignature[0].path,
+                "staff/signature"
+            );
+
+            req.staffDocs.digitalSignature = {
                 url: r.secure_url,
                 public_id: r.public_id
             };

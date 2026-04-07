@@ -2,7 +2,7 @@
 export const API_BASE_URL = 'http://localhost:8000/api/v2';    //https://api.bharatparcel.org/api/v2
 
 //upload image url
-export const FILES_BASE_URL = 'http://localhost:8000';         //https://api.bharatparcel.org/
+export const FILES_BASE_URL = 'http://localhost:8000';         //https://api.bharatparcel.org
 
 export const WHATSAPP_API = 'http://localhost:8000/api/whatsapp';   //https://api.bharatparcel.org/api/whatsapp
 
@@ -24,3 +24,5 @@ export const VEHICLES_API = `${API_BASE_URL}/vehicles`;
 export const STATIONS_API = `${API_BASE_URL}/stations`;
 export const AUTH_API = `${API_BASE_URL}/users`;
 export const STAFF_API = `${API_BASE_URL}/staff`;
+export const RATELIST_API = `${API_BASE_URL}/rate-list`;
+export const CASHBOOK_API = `${API_BASE_URL}/cashbook`;

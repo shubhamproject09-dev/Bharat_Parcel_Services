@@ -49,13 +49,9 @@ const QcustomerSearch = ({ onCustomerSelect }) => {
 
         const matches = Array.isArray(customerList)
             ? customerList.filter((customer) => {
-                const contact = customer.contactNumber ? customer.contactNumber.toString().toLowerCase() : "";
-                const email = customer.emailId ? customer.emailId.toLowerCase() : "";
                 const name = customer.name ? customer.name.toLowerCase().replace(/\s+/g, ' ') : "";
 
                 return (
-                    contact.includes(search) ||
-                    email.includes(search) ||
                     name.includes(search)
                 );
             })
@@ -72,6 +68,7 @@ const QcustomerSearch = ({ onCustomerSelect }) => {
 
     const handleSelectCustomer = (customer) => {
         setFieldValue('QcustomerSearch', customer.name);
+         setFieldValue('fromCustomerName', customer.name);
         setFilteredCustomers([]);
         setNotFound(false);
         if (onCustomerSelect) onCustomerSelect(customer);
@@ -83,7 +80,7 @@ const QcustomerSearch = ({ onCustomerSelect }) => {
                 <Grid size={{ xs: 12, md: 6 }}>
                     <TextField
                         fullWidth
-                        label="Search Customer (by Name / Contact / Email)"
+                        label="Search Customer (by Name )"
                         name="QcustomerSearch"
                         value={values.QcustomerSearch}
                         onChange={handleInputChange}

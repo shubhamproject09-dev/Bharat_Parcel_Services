@@ -24,7 +24,9 @@ export const loginUser = createAsyncThunk(
     "auth/loginUser",
     async (credentials, { rejectWithValue }) => {
         try {
-            const response = await axios.post(`${AUTH_API}/login`, credentials);
+            const response = await axios.post(`${AUTH_API}/login`, credentials, {
+                withCredentials: true
+            });
             return response.data;
         } catch (err) {
             return rejectWithValue(err.response?.data || { message: "Login failed" });
@@ -38,9 +40,7 @@ export const fetchUserProfile = createAsyncThunk(
     async (token, { rejectWithValue }) => {
         try {
             const response = await axios.get(`${AUTH_API}/profile`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
+                withCredentials: true
             });
             return response.data;
         } catch (err) {

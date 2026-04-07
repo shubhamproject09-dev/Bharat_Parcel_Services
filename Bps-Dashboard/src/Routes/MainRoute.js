@@ -56,7 +56,10 @@ import BBooking from '../Pages/Admin/BBooking/Bbooking'
 import StaffCard from '../Pages/Admin/Staff/StaffCard';
 import StaffView from '../Pages/Admin/Staff/Form/StaffView';
 import EditStaff from '../Pages/Admin/Staff/Form/EditStaff';
-
+import RateList from '../Pages/Admin/RateList/RateList';
+import AddRateList from "../Pages/Admin/RateList/Form/rateListForm";
+import ViewRate from "../Pages/Admin/RateList/Form/ViewRate";
+import EditRate from "../Pages/Admin/RateList/Form/EditRate";
 
 const MainRoute = () => {
     const location = useLocation();
@@ -184,6 +187,12 @@ const MainRoute = () => {
                 <Route path='/staffform' element={<StaffForm />} />
                 <Route path="/staffview/:staffId" element={<StaffView />} />
                 <Route path="/editstaff/:staffId" element={<EditStaff />} />
+
+                <Route path="/rate-list" element={<RateList />} />
+                <Route path="/rate-list/add" element={<AddRateList />} />
+                <Route path="/rate-list/view/:id" element={<ViewRate />} />
+                <Route path="/rate-list/edit/:id" element={<EditRate />} />
+
 
                 {/* Users (Admin Only) */}
                 {role !== 'supervisor' && (

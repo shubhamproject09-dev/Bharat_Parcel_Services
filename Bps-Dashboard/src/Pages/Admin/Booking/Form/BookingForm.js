@@ -75,6 +75,10 @@ const generateInitialValues = () => {
         refNo: "",
         quantity: "",
         insurance: "",
+        insuranceAmount: "",
+        insuranceCgst: "",
+        insuranceSgst: "",
+        insuranceTotalWithGST: "",
         vppAmount: "",
         toPay: "",
         // toPayPaid: "",
@@ -149,6 +153,8 @@ const BookingForm = () => {
   const [addingCity, setAddingCity] = React.useState(false);
   const [newReceiverCity, setNewReceiverCity] = React.useState("");
   const [newSenderCity, setNewSenderCity] = React.useState("");
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // important (time issue avoid)
 
   const dispatch = useDispatch();
   const { states, cities } = useSelector((state) => state.location);
@@ -380,30 +386,38 @@ const BookingForm = () => {
                       <DatePicker
                         label="Booking Date"
                         value={values.bookingDate}
-                        onChange={(val) => setFieldValue("bookingDate", val)}
-                        minDate={getDateBeforeDays(11)}
+                        onChange={(val) => {
+                          if (val) {
+                            const selected = new Date(val);
+                            selected.setHours(0, 0, 0, 0);
+                            if (selected > today) {
+                              // ❌ Future date selected
+                              setFieldValue("bookingDate", null);
+                              alert("Please select today or previous date");
+                              return;
+                            }
+                          }
+                          setFieldValue("bookingDate", val);
+                        }}
+                        minDate={getDateBeforeDays(25)}
+                        maxDate={today} // ✅ future dates disabled
                         format="dd/MM/yyyy"
-                        renderInput={(params) => (
-                          <TextField fullWidth {...params} name="bookingDate" />
-                        )}
                         slotProps={{
                           textField: {
                             fullWidth: true,
                             name: "bookingDate",
-                            error: false,
-                            InputProps: {
-                              sx: { width: 495 },
-                            },
+                            helperText: "You can select only today or previous dates",
                           },
                         }}
                       />
+
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
                       <DatePicker
                         label="Proposed Delivery Date"
                         value={values.deliveryDate}
                         onChange={(val) => setFieldValue("deliveryDate", val)}
-                        minDate={values.bookingDate || getDateBeforeDays(11)}
+                        minDate={values.bookingDate || getDateBeforeDays(25)}
                         format="dd/MM/yyyy"
                         renderInput={(params) => (
                           <TextField fullWidth {...params} name="deliveryDate" />
@@ -719,26 +733,21 @@ const BookingForm = () => {
                   <FieldArray name="items">
                     {({ push, remove }) => (
                       <>
-                        {values.items.map((_, index) => (
-                          <Grid
-                            container
-                            spacing={2}
-                            key={index}
-                            alignItems="center"
-                            sx={{ mb: 2 }}
-                          >
-                            <Grid size={{ xs: 0.5 }}>
-                              <Typography>{index + 1}.</Typography>
-                            </Grid>
+                        {values.items.map((item, index) => (
+                          <Grid container spacing={2} key={index} alignItems="center">
+
+                            {/* Receipt No – common */}
                             <Grid size={{ xs: 12, sm: 4, md: 2 }}>
                               <TextField
                                 fullWidth
                                 size="small"
                                 label="Receipt No"
-                                value={values.items[index].receiptNo}
+                                value={item.receiptNo}
                                 InputProps={{ readOnly: true }}
                               />
                             </Grid>
+
+                            {/* Ref No – common */}
                             <Grid size={{ xs: 6, sm: 3, md: 1.5 }}>
                               <Field
                                 as={TextField}
@@ -748,6 +757,8 @@ const BookingForm = () => {
                                 name={`items[${index}].refNo`}
                               />
                             </Grid>
+
+                            {/* Quantity – common */}
                             <Grid size={{ xs: 6, sm: 3, md: 1.5 }}>
                               <Field
                                 as={TextField}
@@ -758,113 +769,179 @@ const BookingForm = () => {
                                 name={`items[${index}].quantity`}
                               />
                             </Grid>
-                            <Grid size={{ xs: 6, sm: 3, md: 1.5 }}>
-                              <Field
-                                as={TextField}
-                                fullWidth
-                                size="small"
-                                label="Insurance"
-                                name={`items[${index}].insurance`}
-                              />
-                            </Grid>
-                            <Grid size={{ xs: 6, sm: 3, md: 1.5 }}>
-                              <Field
-                                as={TextField}
-                                fullWidth
-                                size="small"
-                                label="VPP Amount"
-                                name={`items[${index}].vppAmount`}
-                              />
-                            </Grid>
-                            <Grid size={{ xs: 6, sm: 3, md: 1.5 }}>
-                              <TextField
-                                fullWidth
-                                size="small"
-                                label="Weight"
-                                type="number"
-                                value={values.items[index].weight}
-                                onChange={(e) => {
-                                  const weight = Number(e.target.value || 0);
-                                  const perKg = Number(values.items[index].perKg || 0);
 
-                                  setFieldValue(`items[${index}].weight`, e.target.value);
-                                  setFieldValue(
-                                    `items[${index}].amount`,
-                                    (weight * perKg).toFixed(2)
-                                  );
-                                }}
-                              />
-                            </Grid>
-                            <Grid size={{ xs: 6, sm: 3, md: 1.5 }}>
-                              <TextField
-                                fullWidth
-                                size="small"
-                                label="Per Kg"
-                                type="number"
-                                value={values.items[index].perKg}
-                                onChange={(e) => {
-                                  const perKg = Number(e.target.value || 0);
-                                  const weight = Number(values.items[index].weight || 0);
+                            {/* 🔴 ONLY FIRST ITEM */}
+                            {index === 0 && (
+                              <>
+                                <Grid size={{ xs: 6, sm: 3, md: 1.5 }}>
+                                  <Field
+                                    as={TextField}
+                                    fullWidth
+                                    size="small"
+                                    label="Insurance"
+                                    name={`items[${index}].insurance`}
+                                  />
+                                </Grid>
 
-                                  setFieldValue(`items[${index}].perKg`, e.target.value);
-                                  setFieldValue(
-                                    `items[${index}].amount`,
-                                    (weight * perKg).toFixed(2)
-                                  );
-                                }}
-                              />
-                            </Grid>
-                            <Grid size={{ xs: 6, sm: 3, md: 1.5 }}>
-                              <TextField
-                                fullWidth
-                                size="small"
-                                label="Amount"
-                                value={values.items[index].amount}
-                                InputProps={{ readOnly: true }}
-                              />
-                            </Grid>
-                            <Grid size={{ xs: 6, sm: 3, md: 1.5 }}>
-                              <TextField
-                                select
-                                fullWidth
-                                size="small"
-                                label="Payment"
-                                name={`items[${index}].toPay`}
-                                value={values.items[index].toPay}
-                                onChange={handleChange}
-                              >
-                                {toPay.map((p) => (
-                                  <MenuItem key={p} value={p}>
-                                    {p}
-                                  </MenuItem>
-                                ))}
-                              </TextField>
-                            </Grid>
+                                <Grid size={{ xs: 6, sm: 3, md: 1.5 }}>
+                                  <Field
+                                    as={TextField}
+                                    fullWidth
+                                    size="small"
+                                    label="VPP Amount"
+                                    name={`items[${index}].vppAmount`}
+                                  />
+                                </Grid>
+
+                                <Grid size={{ xs: 6, sm: 3, md: 1.5 }}>
+                                  <TextField
+                                    fullWidth
+                                    size="small"
+                                    label="Weight"
+                                    type="number"
+                                    value={item.weight}
+                                    onChange={(e) => {
+                                      const weight = Number(e.target.value || 0);
+                                      const perKg = Number(item.perKg || 0);
+                                      setFieldValue(`items[${index}].weight`, e.target.value);
+                                      setFieldValue(`items[${index}].amount`, (weight * perKg).toFixed(2));
+                                    }}
+                                  />
+                                </Grid>
+
+                                <Grid size={{ xs: 6, sm: 3, md: 1.5 }}>
+                                  <TextField
+                                    fullWidth
+                                    size="small"
+                                    label="Per Kg"
+                                    type="number"
+                                    value={item.perKg}
+                                    onChange={(e) => {
+                                      const perKg = Number(e.target.value || 0);
+                                      const weight = Number(item.weight || 0);
+                                      setFieldValue(`items[${index}].perKg`, e.target.value);
+                                      setFieldValue(`items[${index}].amount`, (weight * perKg).toFixed(2));
+                                    }}
+                                  />
+                                </Grid>
+
+                                <Grid size={{ xs: 6, sm: 3, md: 1.5 }}>
+                                  <TextField
+                                    fullWidth
+                                    size="small"
+                                    label="Amount"
+                                    value={item.amount}
+                                    InputProps={{ readOnly: true }}
+                                  />
+                                </Grid>
+                              </>
+                            )}
+
+                            {/* 🟢 ONLY ADD ITEM (index > 0) */}
+                            {index > 0 && (
+                              <>
+                                <Grid size={{ xs: 6, sm: 3, md: 1.5 }}>
+                                  <Field
+                                    as={TextField}
+                                    fullWidth
+                                    size="small"
+                                    label="Insurance"
+                                    name={`items[${index}].insurance`}
+                                  />
+                                </Grid>
+
+                                <Grid size={{ xs: 6, sm: 3, md: 1.5 }}>
+                                  <TextField
+                                    fullWidth
+                                    size="small"
+                                    type="number"
+                                    label="Insurance Amount"
+                                    value={item.insuranceAmount}
+                                    onChange={(e) => {
+                                      const base = Number(e.target.value || 0);
+
+                                      const cgst = base * 0.09;
+                                      const sgst = base * 0.09;
+                                      const total = base + cgst + sgst;
+
+                                      setFieldValue(`items[${index}].insuranceAmount`, base);
+                                      setFieldValue(`items[${index}].insuranceCgst`, "9");
+                                      setFieldValue(`items[${index}].insuranceSgst`, "9");
+                                      setFieldValue(`items[${index}].insuranceTotalWithGST`, total.toFixed(2));
+                                      setFieldValue(`items[${index}].toPay`, "paid");
+                                    }}
+                                  />
+                                </Grid>
+
+                                {/* Fixed GST for Add Item */}
+                                <Grid size={{ xs: 6, sm: 3, md: 1.5 }}>
+                                  <TextField
+                                    fullWidth
+                                    size="small"
+                                    label="CGST %"
+                                    value="9%"
+                                    InputProps={{ readOnly: true }}
+                                  />
+                                </Grid>
+
+                                <Grid size={{ xs: 6, sm: 3, md: 1.5 }}>
+                                  <TextField
+                                    fullWidth
+                                    size="small"
+                                    label="SGST %"
+                                    value="9%"
+                                    InputProps={{ readOnly: true }}
+                                  />
+                                </Grid>
+
+                                <Grid size={{ xs: 6, sm: 3, md: 1.5 }}>
+                                  <TextField
+                                    fullWidth
+                                    size="small"
+                                    label="Total Insurance (Incl GST)"
+                                    value={item.insuranceTotalWithGST || ""}
+                                    InputProps={{ readOnly: true }}
+                                  />
+                                </Grid>
+                              </>
+                            )}
+
+                            {/* Payment only for first item */}
+                            {index === 0 && (
+                              <Grid size={{ xs: 6, sm: 3, md: 1.5 }}>
+                                <TextField
+                                  select
+                                  fullWidth
+                                  size="small"
+                                  label="Payment"
+                                  name={`items[${index}].toPay`}
+                                  value={item.toPay}
+                                  onChange={handleChange}
+                                >
+                                  {toPay.map((p) => (
+                                    <MenuItem key={p} value={p}>
+                                      {p}
+                                    </MenuItem>
+                                  ))}
+                                </TextField>
+                              </Grid>
+                            )}
+
+                            {/* Remove – common */}
                             <Grid size={{ xs: 6, sm: 3, md: 1 }}>
                               <Button
                                 color="error"
-                                onClick={() => remove(index)}
                                 variant="outlined"
                                 fullWidth
+                                onClick={() => remove(index)}
+                                disabled={index === 0}
                               >
                                 Remove
                               </Button>
                             </Grid>
-                            {/* <Grid size={{ xs: 6, sm: 3, md: 3 }}>
-                            <TextField
-                              fullWidth
-                              size="small"
-                              type="number"
-                              label="Total Parcels"
-                              name="totalParcels"
-                              value={values.totalParcels}
-                              onChange={handleChange}
-                              inputProps={{ min: 1 }}
-                            />
-                          </Grid> */}
+
                           </Grid>
                         ))}
-
                         <Grid size={{ xs: 12 }}>
                           <Button
                             fullWidth
@@ -875,11 +952,11 @@ const BookingForm = () => {
                                 refNo: "",
                                 quantity: "",
                                 insurance: "",
-                                vppAmount: "",
-                                toPayPaid: "",
-                                weight: "",
-                                perKg: "",
-                                amount: "",
+                                insuranceAmount: "",
+                                insuranceCgst: "9",
+                                insuranceSgst: "9",
+                                insuranceTotalWithGST: "",
+                                toPay: "paid",
                               })
                             }
                           >
@@ -1002,7 +1079,7 @@ const BookingForm = () => {
           )
         }}
       </Formik>
-    </LocalizationProvider>
+    </LocalizationProvider >
   );
 };
 

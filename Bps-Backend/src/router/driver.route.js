@@ -22,14 +22,14 @@ const router = express.Router();
 
 // 
 router.route("/create").post(upload.fields([
-      {
-          name:"idProofPhoto",
-          maxCount :1
-      },{
-          name:"driverProfilePhoto",
-          maxCount:1
-      }
-  ]),multerErrorHandler , createDriver);
+    {
+        name: "idProofPhoto",
+        maxCount: 1
+    }, {
+        name: "driverProfilePhoto",
+        maxCount: 1
+    }
+]), multerErrorHandler, createDriver);
 
 // Get All Drivers
 router.get("/all", getAllDrivers);
@@ -50,11 +50,11 @@ router.get("/available-count", getAvailableDriversCount);
 router.get("/blacklisted-count", getBlacklistedDriversCount);
 
 // Get Deactived List
-router.get("/deactive-list",getDeactivedDrivers);
+router.get("/deactive-list", getDeactivedDrivers);
 
 //Get Deactive Count
 
-router.get("/deactive-count",getDeactivedDriversCount)
+router.get("/deactive-count", getDeactivedDriversCount)
 //  Get Driver by Mongo _id
 router.get("/:id", getDriverById);
 
@@ -64,13 +64,13 @@ router.get("/driver-id/:driverId", getDriverByDriverId);
 //  Update Driver details
 router.route("/update/:id").put(upload.fields([
     {
-        name:"idProofPhoto",
-        maxCount :1
-    },{
-        name:"driverProfilePhoto",
-        maxCount:1
+        name: "idProofPhoto",
+        maxCount: 1
+    }, {
+        name: "driverProfilePhoto",
+        maxCount: 1
     }
-]),multerErrorHandler ,updateDriver);
+]), multerErrorHandler, updateDriver);
 
 //  Update only Driver Status (isAvailable, isBlacklisted,isDeactived)
 

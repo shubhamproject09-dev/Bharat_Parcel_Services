@@ -132,17 +132,19 @@ export const revenueList = createAsyncThunk(
 
 )
 export const cancelBooking = createAsyncThunk(
-  'cancel/booking', async (bookingId, thunkApi) => {
+  'cancel/booking',
+  async ({ bookingId, reason }, thunkApi) => {
     try {
-      const res = await axios.patch(`${BASE_URL}/${bookingId}/cancel`)
+      const res = await axios.patch(
+        `${BASE_URL}/${bookingId}/cancel`,
+        { reason }   // ✅ yaha reason bhejna hai
+      );
       return res.data.booking;
-
-    }
-    catch (err) {
+    } catch (err) {
       return thunkApi.rejectWithValue(err.response?.data?.message);
     }
   }
-)
+);
 export const sendWhatsAppMsg = createAsyncThunk(
   'sendMsg/sendWhatsApp', async (bookingId, thunkApi) => {
     try {
@@ -384,6 +386,7 @@ const initialState = {
   list3: [],
   list4: [],
   list5: [],
+  deletedBookings: [],
   incomingList: [],
   requestCount: 0,
   activeDeliveriesCount: 0,
@@ -778,9 +781,18 @@ const bookingSlice = createSlice({
       })
       .addCase(restoreBooking.fulfilled, (state, action) => {
         state.loading = false;
+
+        const restoredId = action.payload?._id;
+
+        if (!Array.isArray(state.deletedBookings)) {
+          state.deletedBookings = [];
+          return;
+        }
+
         state.deletedBookings = state.deletedBookings.filter(
-          (b) => b._id !== action.payload._id
+          (b) => b && b._id && b._id !== restoredId
         );
+
         state.message = "Booking restored successfully!";
       })
       .addCase(restoreBooking.rejected, (state, action) => {

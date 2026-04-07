@@ -1,12 +1,20 @@
 import multer from "multer";
 import path from "path";
+import { fileURLToPath } from "url";
+
+// 🔥 absolute path resolve
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// 🔥 uploads folder (src ke bahar)
+const uploadPath = path.join(__dirname, "../../uploads");
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "./uploads");
+    cb(null, uploadPath); // ✅ absolute path
   },
   filename: function (req, file, cb) {
-    const unique = Date.now() + "-" + Math.round(Math.random() * 1E9);
+    const unique = Date.now() + "-" + Math.round(Math.random() * 1e9);
     cb(null, unique + path.extname(file.originalname));
   }
 });

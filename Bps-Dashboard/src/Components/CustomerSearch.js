@@ -51,13 +51,9 @@ const CustomerSearch = ({ onCustomerSelect, type = "sender" }) => {
 
         const matches = customerList.filter((customer) => {
             // Safely handle potentially undefined properties
-            const contact = customer.contactNumber?.toString().toLowerCase() || '';
-            const email = customer.emailId?.toLowerCase() || '';
             const name = customer.name?.toLowerCase().replace(/\s+/g, ' ') || '';
 
             return (
-                contact.includes(search) ||
-                email.includes(search) ||
                 name.includes(search)
             );
         });
@@ -91,7 +87,7 @@ const CustomerSearch = ({ onCustomerSelect, type = "sender" }) => {
                 <Grid size={{ xs: 12, md: 6 }}>
                     <TextField
                         fullWidth
-                        label={`Search ${type === 'sender' ? 'Sender' : 'Receiver'} Customer (by Name / Contact / Email)`}
+                        label={`Search ${type === 'sender' ? 'Sender' : 'Receiver'} Customer (by Name )`}
                         name="customerSearch"
                         value={values.customerSearch}
                         onChange={handleInputChange}

@@ -15,8 +15,12 @@ const staffSchema = new mongoose.Schema({
 
     lastName: {
         type: String,
-        required: true,
         trim: true
+    },
+
+    dob: {
+        type: Date,
+        required: true
     },
 
     contactNumber: {
@@ -35,12 +39,22 @@ const staffSchema = new mongoose.Schema({
         required: true,
     },
 
+    designation: {
+        type: String,
+        required: true,
+        trim: true
+    },
+
     documents: {
         aadharCardPhoto: {
             url: { type: String },
             public_id: { type: String }
         },
         passportPhoto: {
+            url: { type: String },
+            public_id: { type: String }
+        },
+        digitalSignature: {
             url: { type: String },
             public_id: { type: String }
         }
@@ -52,6 +66,22 @@ const staffSchema = new mongoose.Schema({
         city: { type: String, required: true },
         district: { type: String, required: true },
         pincode: { type: String, required: true }
+    },
+
+    officeAddress: {
+        type: String,
+        required: true,
+        trim: true
+    },
+
+    joiningDate: {
+        type: Date,
+        required: true
+    },
+
+    expiryDate: {
+        type: Date,
+        required: true
     },
 
     status: {
@@ -80,19 +110,19 @@ const staffSchema = new mongoose.Schema({
    Format: FIR_123_BPS
 ===================================================== */
 staffSchema.pre("save", async function (next) {
-    if (this.staffId) return next(); // already exists
+    if (this.staffId) return next();
 
     const firstNamePart = this.firstName
         .replace(/[^a-zA-Z]/g, "")
         .substring(0, 3)
         .toUpperCase()
-        .padEnd(3, "X"); // in case name < 3 letters
+        .padEnd(3, "X");
 
     let unique = false;
     let staffId = "";
 
     while (!unique) {
-        const randomNum = Math.floor(100 + Math.random() * 900); // 3 digit
+        const randomNum = Math.floor(100 + Math.random() * 900);
         staffId = `${firstNamePart}_${randomNum}_BPS`;
 
         const exists = await mongoose.models.Staff.findOne({ staffId });

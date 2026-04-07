@@ -62,6 +62,7 @@ const getAllStations = asyncHandler(async (req, res) => {
 
   const formattedStations = stations.map((station, index) => ({
     sNo: index + 1,
+    _id: station._id,
     stationId: station.stationId,
     stationName: station.stationName,
     contactNumber: station.contact

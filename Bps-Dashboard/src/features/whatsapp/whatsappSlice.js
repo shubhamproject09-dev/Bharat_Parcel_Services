@@ -1,77 +1,16 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
-import { WHATSAPP_API } from '../../utils/api';
+import { WHATSAPP_API } from "../../utils/api";
 
-// Async thunk
-export const sendWhatsappMessage = createAsyncThunk(
-    "whatsapp/sendMessage",
-    async ({ to, message }, { rejectWithValue, getState }) => {
+// ✅ ONLY TEMPLATE API
+export const sendBookingWhatsapp = createAsyncThunk(
+    "whatsapp/sendBooking",
+    async (formData, { rejectWithValue, getState }) => {
         try {
-            const state = getState();
-            const token = state.users?.token || localStorage.getItem("token"); // adjust auth logic
+            const token = getState().users?.token;
 
             const res = await axios.post(
-                `${WHATSAPP_API}/send`,
-                { to, message },
-                {
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`
-                    }
-                }
-            );
-
-            return res.data;
-        } catch (err) {
-            return rejectWithValue(err.response?.data || err.message);
-        }
-    }
-);
-
-// 🔥 Booking Confirmation WhatsApp
-export const sendBookingConfirmWhatsapp = createAsyncThunk(
-    "whatsapp/sendBookingConfirm",
-    async (bookingId, { rejectWithValue, getState }) => {
-        try {
-            const state = getState();
-            const token = state.users?.token || localStorage.getItem("token");
-
-            const res = await axios.post(
-                `${WHATSAPP_API}/booking-confirm`,
-                { bookingId },
-                {
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`
-                    }
-                }
-            );
-
-            return res.data;
-        } catch (err) {
-            return rejectWithValue(err.response?.data || err.message);
-        }
-    }
-);
-
-// 🔥 Send Bilty PDF on WhatsApp
-export const sendWhatsappBilty = createAsyncThunk(
-    "whatsapp/sendBilty",
-    async ({ bookingId, biltyBlob }, { rejectWithValue, getState }) => {
-        try {
-            const state = getState();
-            const token = state.users?.token || localStorage.getItem("token");
-
-            const formData = new FormData();
-            formData.append(
-                "bilty",
-                biltyBlob,
-                `Bilty_${bookingId}.pdf`
-            );
-            formData.append("bookingId", bookingId);
-
-            const res = await axios.post(
-                `${WHATSAPP_API}/send-bilty`,
+                `${WHATSAPP_API}/send-template`,
                 formData,
                 {
                     headers: {
@@ -88,54 +27,14 @@ export const sendWhatsappBilty = createAsyncThunk(
     }
 );
 
-// 🔥 Booking WhatsApp (TEXT ONLY)
-export const sendBookingWhatsappText = createAsyncThunk(
-    "whatsapp/sendBookingText",
-    async (bookingId, { rejectWithValue, getState }) => {
+export const sendQuotationWhatsapp = createAsyncThunk(
+    "whatsapp/sendQuotation",
+    async (formData, { rejectWithValue, getState }) => {
         try {
-            const state = getState();
-            const token =
-                state.users?.token || localStorage.getItem("token");
+            const token = getState().users?.token;
 
             const res = await axios.post(
-                `${WHATSAPP_API}/booking-text`,
-                { bookingId },
-                {
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`
-                    }
-                }
-            );
-
-            return res.data;
-        } catch (err) {
-            return rejectWithValue(
-                err.response?.data || err.message
-            );
-        }
-    }
-);
-
-// 🔥 Booking WhatsApp (PDF + TEMPLATE)
-export const sendBookingWhatsappPdf = createAsyncThunk(
-    "whatsapp/sendBookingPdf",
-    async ({ bookingId, pdfBlob }, { rejectWithValue, getState }) => {
-        try {
-            const state = getState();
-            const token =
-                state.users?.token || localStorage.getItem("token");
-
-            const formData = new FormData();
-            formData.append(
-                "bilty",
-                pdfBlob,
-                `Booking_${bookingId}.pdf`
-            );
-            formData.append("bookingId", bookingId);
-
-            const res = await axios.post(
-                `${WHATSAPP_API}/booking-pdf`,
+                `${WHATSAPP_API}/send-quotation`, // ✅ new route
                 formData,
                 {
                     headers: {
@@ -147,9 +46,7 @@ export const sendBookingWhatsappPdf = createAsyncThunk(
 
             return res.data;
         } catch (err) {
-            return rejectWithValue(
-                err.response?.data || err.message
-            );
+            return rejectWithValue(err.response?.data || err.message);
         }
     }
 );
@@ -160,7 +57,11 @@ const whatsappSlice = createSlice({
         loading: false,
         success: false,
         error: null,
-        response: null
+        response: null,
+
+        quotationLoading: false,
+        quotationSuccess: false,
+        quotationError: null,
     },
     reducers: {
         resetWhatsappState: (state) => {
@@ -168,91 +69,43 @@ const whatsappSlice = createSlice({
             state.success = false;
             state.error = null;
             state.response = null;
+
+            state.quotationLoading = false;
+            state.quotationSuccess = false;
+            state.quotationError = null;
         }
     },
     extraReducers: (builder) => {
         builder
-            .addCase(sendWhatsappMessage.pending, (state) => {
+            .addCase(sendBookingWhatsapp.pending, (state) => {
                 state.loading = true;
                 state.success = false;
                 state.error = null;
             })
-            .addCase(sendWhatsappMessage.fulfilled, (state, action) => {
+            .addCase(sendBookingWhatsapp.fulfilled, (state, action) => {
                 state.loading = false;
                 state.success = true;
                 state.response = action.payload;
             })
-            .addCase(sendWhatsappMessage.rejected, (state, action) => {
+            .addCase(sendBookingWhatsapp.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
                 state.success = false;
             })
-            // 🔥 Booking Confirm
-            .addCase(sendBookingConfirmWhatsapp.pending, (state) => {
-                state.loading = true;
-                state.success = false;
-                state.error = null;
+             .addCase(sendQuotationWhatsapp.pending, (state) => {
+                state.quotationLoading = true;
+                state.quotationSuccess = false;
+                state.quotationError = null;
             })
-            .addCase(sendBookingConfirmWhatsapp.fulfilled, (state, action) => {
-                state.loading = false;
-                state.success = true;
-                state.response = action.payload;
+            .addCase(sendQuotationWhatsapp.fulfilled, (state, action) => {
+                state.quotationLoading = false;
+                state.quotationSuccess = true;
             })
-            .addCase(sendBookingConfirmWhatsapp.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.payload;
-                state.success = false;
-            })
-            // 🔥 Send Bilty
-            .addCase(sendWhatsappBilty.pending, (state) => {
-                state.loading = true;
-                state.success = false;
-                state.error = null;
-            })
-            .addCase(sendWhatsappBilty.fulfilled, (state, action) => {
-                state.loading = false;
-                state.success = true;
-                state.response = action.payload;
-            })
-            .addCase(sendWhatsappBilty.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.payload;
-                state.success = false;
-            })
-            // 🔥 Booking TEXT
-            .addCase(sendBookingWhatsappText.pending, (state) => {
-                state.loading = true;
-                state.error = null;
-                state.success = false;
-            })
-            .addCase(sendBookingWhatsappText.fulfilled, (state, action) => {
-                state.loading = false;
-                state.success = true;
-                state.response = action.payload;
-            })
-            .addCase(sendBookingWhatsappText.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.payload;
-                state.success = false;
-            })
-
-            // 🔥 Booking PDF
-            .addCase(sendBookingWhatsappPdf.pending, (state) => {
-                state.loading = true;
-                state.error = null;
-                state.success = false;
-            })
-            .addCase(sendBookingWhatsappPdf.fulfilled, (state, action) => {
-                state.loading = false;
-                state.success = true;
-                state.response = action.payload;
-            })
-            .addCase(sendBookingWhatsappPdf.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.payload;
-                state.success = false;
+            .addCase(sendQuotationWhatsapp.rejected, (state, action) => {
+                state.quotationLoading = false;
+                state.quotationError = action.payload;
+                state.quotationSuccess = false;
             });
-
     }
 });
 

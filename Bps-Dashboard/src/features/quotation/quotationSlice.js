@@ -65,16 +65,23 @@ export const fetchActiveBooking = createAsyncThunk(
 )
 //cancelled booking
 export const fetchCancelledBooking = createAsyncThunk(
-  'booking.cancelledCount', async (_, thunkApi) => {
+  'booking.cancelledCount',
+  async (_, thunkApi) => {
     try {
-      const res = await axios.get(`${BASE_URL}/cancelled-list`)
-      return { cancelledCount: res.data.data.totalCancelledDeliveries }
-    }
-    catch (error) {
-      return thunkApi.rejectWithValue(error.response?.data?.message || "Failed To fetch Cancelled Booking");
+      const res = await axios.get(`${BASE_URL}/cancelled-list`);
+
+      return {
+        cancelledCount: res.data.data.totalCancelledDeliveries,
+        deliveries: res.data.data.deliveries   // ✅ ADD THIS
+      };
+
+    } catch (error) {
+      return thunkApi.rejectWithValue(
+        error.response?.data?.message || "Failed To fetch Cancelled Booking"
+      );
     }
   }
-)
+);
 
 export const viewBookingById = createAsyncThunk(
   '/booking/viewBookingById', async (bookingId, thunkApi) => {
@@ -216,6 +223,59 @@ export const uploadQuotationPdf = createAsyncThunk(
     } catch (err) {
       return thunkApi.rejectWithValue(
         err.response?.data?.message || "PDF upload failed"
+      );
+    }
+  }
+);
+
+export const cancelQuotation = createAsyncThunk(
+  "quotation/cancelQuotation",
+  async ({ bookingId, reason }, thunkApi) => {
+    try {
+      const res = await axios.patch(
+        `${BASE_URL}/status/${bookingId}?activeDelivery=false`,
+        {
+          cancelReason: reason   // ✅ IMPORTANT
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`
+          }
+        }
+      );
+
+      return { bookingId };
+
+    } catch (err) {
+      return thunkApi.rejectWithValue(
+        err.response?.data?.message || "Cancel failed"
+      );
+    }
+  }
+);
+
+export const receivePayment = createAsyncThunk(
+  "quotation/receivePayment",
+  async ({ bookingId, amount }, thunkApi) => {
+    try {
+      const res = await axios.patch(
+        `${BASE_URL}/receive-payment/${bookingId}`,
+        { amount },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`
+          }
+        }
+      );
+
+      return {
+        bookingId,
+        data: res.data.data
+      };
+
+    } catch (err) {
+      return thunkApi.rejectWithValue(
+        err.response?.data?.message || "Payment failed"
       );
     }
   }
@@ -476,6 +536,29 @@ const quotationSlice = createSlice({
         state.pdfUploadLoading = false;
         state.error = action.payload;
       })
+      .addCase(cancelQuotation.fulfilled, (state, action) => {
+  state.list = state.list.filter(
+    (item) => item.bookingId !== action.payload.bookingId
+  )
+})
+.addCase(receivePayment.fulfilled, (state, action) => {
+  const updated = action.payload.data;
+
+  const index = state.list.findIndex(
+    item =>
+      item.bookingId === action.payload.bookingId ||
+      item["Booking ID"] === action.payload.bookingId
+  );
+
+  if (index !== -1) {
+    state.list[index] = {
+      ...state.list[index],
+      paidAmount: updated.paidAmount,
+      deliveryPendingAmount: updated.deliveryPendingAmount,
+      paymentStatus: updated.paymentStatus,
+    };
+  }
+})
 
   }
 })

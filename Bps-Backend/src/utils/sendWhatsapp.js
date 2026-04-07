@@ -6,25 +6,18 @@ const BASE_URL =
 const PHONE_NUMBER_ID = "986328151220411";
 const API_KEY = "w8bag3KDXdM9T1AYe6h07S2k";
 
-/**
- * Send WhatsApp Template Message with PDF + dynamic params
- */
 export const sendWhatsappMessage = async ({
     mobile,
-    templateName,
     pdfUrl,
     bodyParams = [],
 }) => {
-    if (!mobile) throw new Error("Mobile number required");
-    if (!pdfUrl) throw new Error("PDF URL required");
-
     const payload = {
         messaging_product: "whatsapp",
         recipient_type: "individual",
         to: mobile,
         type: "template",
         template: {
-            name: templateName,
+            name: "bharat_parcel_services", // ✅ YOUR TEMPLATE
             language: { code: "en" },
             components: [
                 {
@@ -33,16 +26,16 @@ export const sendWhatsappMessage = async ({
                         {
                             type: "document",
                             document: {
-                                link: pdfUrl, // 🔥 slip pdf
+                                link: pdfUrl, // ✅ PUBLIC LINK
                             },
                         },
                     ],
                 },
                 {
                     type: "body",
-                    parameters: bodyParams.map((value) => ({
+                    parameters: bodyParams.map((val) => ({
                         type: "text",
-                        text: String(value),
+                        text: String(val),
                     })),
                 },
             ],
@@ -55,7 +48,7 @@ export const sendWhatsappMessage = async ({
         {
             headers: {
                 "Content-Type": "application/json",
-                "api-key": API_KEY, // 🔥 MOST IMPORTANT
+                "api-key": API_KEY,
             },
         }
     );

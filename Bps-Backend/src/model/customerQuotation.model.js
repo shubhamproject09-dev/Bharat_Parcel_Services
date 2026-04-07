@@ -170,6 +170,16 @@ const quotationSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  cancelReason: {
+  type: String,
+  default: null
+},
+topayHistory: [
+  {
+    amount: Number,
+    date: { type: Date, default: Date.now }
+  }
+],
   totalCancelled: {
     type: Number,
     default: 0

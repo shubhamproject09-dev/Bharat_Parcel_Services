@@ -52,10 +52,6 @@ import { finalizeDelivery } from '../../../features/delivery/deliverySlice';
 import UploadIcon from "@mui/icons-material/Upload";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import ImageIcon from "@mui/icons-material/Image";
-import WhatsAppIcon from "@mui/icons-material/WhatsApp";
-import {
-  sendBookingWhatsappText
-} from "../../../features/whatsapp/whatsappSlice";
 
 const createData = (id, orderby, date, namep, pickup, named, drop, contact) => ({
   id,
@@ -70,9 +66,18 @@ const createData = (id, orderby, date, namep, pickup, named, drop, contact) => (
 
 
 function descendingComparator(a, b, orderBy) {
+
+  // 🔥 DATE SORT
   if (orderBy === "date") {
     return new Date(b.date) - new Date(a.date);
   }
+
+  // 🔥 BILTY SORT (IMPORTANT)
+  if (orderBy === "biltyNo") {
+    return (b.biltyNo || "").localeCompare(a.biltyNo || "", undefined, { numeric: true });
+  }
+
+  // 🔥 DEFAULT
   if (b[orderBy] < a[orderBy]) return -1;
   if (b[orderBy] > a[orderBy]) return 1;
   return 0;
@@ -97,7 +102,7 @@ function stableSort(array, comparator) {
 const headCells = [
   { id: "active", label: "Finalize", sortable: false },
   { id: "sno", label: "S.No", sortable: false },
-  { id: "biltyNo", label: "Bilty No", sortable: false },
+  { id: "biltyNo", label: "Bilty No", sortable: true },
   { id: "orderby", label: "Order By", sortable: true },
   { id: "date", label: "Date", sortable: true },
   { id: "namep", label: "Sender Name", sortable: true },
@@ -105,6 +110,7 @@ const headCells = [
   { id: "named", label: "Receiver Name", sortable: false },
   { id: "drop", label: "Drop", sortable: false },
   { id: "contact", label: "Contact", sortable: false },
+  { id: "cancelReason", label: "Cancel Reason", sortable: false },
   { id: "action", label: "Action", sortable: false },
 ];
 
@@ -142,9 +148,9 @@ const BookingCard = () => {
   const cardLightColor = "#e6f0fa";
   const [activeCard, setActiveCard] = useState(null);
   const [order, setOrder] = useState("desc");
-  const [orderBy, setOrderBy] = useState("date");
+  const [orderBy, setOrderBy] = useState("biltyNo");
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedList, setSelectedList] = useState("request");
   const [bookings, setBookings] = useState([]);
@@ -194,22 +200,14 @@ const BookingCard = () => {
     navigate("/booking/new");
   };
 
+  useEffect(() => {
+    setOrder("desc");
+    setOrderBy("biltyNo");
+  }, [selectedList]);
+
   const isRevenueCardActive = activeCard === 4;
 
   const displayHeadCells = isRevenueCardActive ? revenueHeadCells : headCells;
-
-  const handleBookingWhatsappText = (bookingId) => {
-    dispatch(sendBookingWhatsappText(bookingId))
-      .unwrap()
-      .then(() => {
-        alert("✅ Booking details sent on WhatsApp");
-      })
-      .catch((err) => {
-        alert(
-          err?.message || "❌ Failed to send WhatsApp message"
-        );
-      });
-  };
 
   const handleCardClick = (type, cardId) => {
     setActiveCard(cardId);
@@ -256,11 +254,21 @@ const BookingCard = () => {
     setBookingToDelete(bookingId);
     setDeleteDialogOpen(true);
   };
-  const handleCancel = (bookingId) => {
-    dispatch(cancelBooking(bookingId))
-    window.location.reload();
+ const handleCancel = (bookingId) => {
+  const reason = prompt("Enter cancel reason:");
+
+  if (!reason || reason.trim() === "") {
+    alert("Cancel reason is required!");
+    return;
   }
 
+  dispatch(cancelBooking({ bookingId, reason }))
+    .unwrap()
+    .then(() => {
+      alert("Booking cancelled successfully");
+      dispatch(fetchBookingsByType('cancelled')); // refresh
+    });
+};
   const handleDeleteConfirm = () => {
     dispatch(deleteBooking(bookingToDelete));
     setDeleteDialogOpen(false);
@@ -552,6 +560,7 @@ const BookingCard = () => {
               <TableRow>
                 {displayHeadCells.filter((headCell) => {
                   if (headCell.id === "active" && selectedList !== "active") return false;
+                  if (headCell.id === "cancelReason" && selectedList !== "cancelled") return false;
                   return true;
                 })
                   .map((headCell) => (
@@ -635,94 +644,128 @@ const BookingCard = () => {
                         <TableCell sx={{ whiteSpace: 'nowrap' }}>{row.toName}</TableCell>
                         <TableCell>{row.drop}</TableCell>
                         <TableCell>{row.contact}</TableCell>
-                        <TableCell>
-                          <Box sx={{ display: "flex", gap: 1 }}>
-                            <IconButton
-                              size="small"
-                              color="info"
-                              onClick={() => handleView(row.bookingId)}
-                              title="View"
-                            >
-                              <VisibilityIcon fontSize="small" />
-                            </IconButton>
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => handleEdit(row.bookingId)}
-                              title="Edit"
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => handleCancel(row.bookingId)}
-                              title="CancelScheduleSend"
-                            >
-                              <CancelScheduleSendIcon fontSize="small" />
-                            </IconButton>
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => handleDeleteClick(row.bookingId)}
-                              title="Delete"
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              title="share"
-                              onClick={() => handleShare(row.bookingId)}
-                            >
-                              <SendIcon fontSize="small" />
-                            </IconButton>
-                            <IconButton
-                              size="small"
-                              sx={{ color: "#25D366" }} // WhatsApp green
-                              title="Send WhatsApp (Text)"
-                              onClick={() => handleBookingWhatsappText(row.bookingId)}
-                            >
-                              <WhatsAppIcon fontSize="small" />
-                            </IconButton>
-                            <IconButton
-                              size="small"
-                              color="secondary"
-                              onClick={() => handleSlipClick(row.bookingId)}
-                              title="Slip"
-                            >
-                              <ReceiptIcon fontSize="small" />
-                            </IconButton>
-                            {/* 📤 Upload Icon (ONLY ACTIVE) */}
-                            {selectedList === "active" && (
-                              <IconButton
-                                size="small"
-                                color="success"
-                                onClick={() => handleUploadClick(row.bookingId)}
-                                title="Upload PDF"
-                              >
-                                <UploadIcon fontSize="small" />
-                              </IconButton>
-                            )}
+                        {selectedList === "cancelled" && (
+                         <TableCell>
+                         {row.cancelReason || "-"}
+                          </TableCell>
+                          )}
+                       <TableCell>
+  <Box sx={{ display: "flex", gap: 1 }}>
 
-                            {/* 👁 Preview Icon (ONLY IF PDF EXISTS + ACTIVE) */}
-                            {selectedList === "active" && row.quotationPdf && (
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                onClick={() => handlePreview(row.quotationPdf)}
-                                title="Preview PDF"
-                              >
-                                <PictureAsPdfIcon fontSize="small" />
-                              </IconButton>
-                            )}
-                          </Box>
-                          <SlipModal
-                            open={openSlip}
-                            handleClose={handleCloseSlip}
-                            bookingData={booking}
-                          />
-                        </TableCell>
+    {selectedList === "cancelled" ? (
+      <>
+        {/* ✅ CANCEL TAB → ONLY 2 ICON */}
+
+        <IconButton
+          size="small"
+          color="secondary"
+          onClick={() => handleSlipClick(row.bookingId)}
+          title="Slip"
+        >
+          <ReceiptIcon fontSize="small" />
+        </IconButton>
+
+        <IconButton
+          size="small"
+          color="error"
+          onClick={() => handleDeleteClick(row.bookingId)}
+          title="Delete"
+        >
+          <DeleteIcon fontSize="small" />
+        </IconButton>
+      </>
+    ) : (
+      <>
+        {/* ✅ TUMHARA ORIGINAL CODE SAME */}
+
+        <IconButton
+          size="small"
+          color="info"
+          onClick={() => handleView(row.bookingId)}
+          title="View"
+        >
+          <VisibilityIcon fontSize="small" />
+        </IconButton>
+
+        <IconButton
+          size="small"
+          color="primary"
+          onClick={() => handleEdit(row.bookingId)}
+          title="Edit"
+        >
+          <EditIcon fontSize="small" />
+        </IconButton>
+
+        <IconButton
+          size="small"
+          color="primary"
+          onClick={() => handleCancel(row.bookingId)}
+          title="CancelScheduleSend"
+        >
+          <CancelScheduleSendIcon fontSize="small" />
+        </IconButton>
+
+        <IconButton
+          size="small"
+          color="error"
+          onClick={() => handleDeleteClick(row.bookingId)}
+          title="Delete"
+        >
+          <DeleteIcon fontSize="small" />
+        </IconButton>
+
+        <IconButton
+          size="small"
+          color="primary"
+          title="share"
+          onClick={() => handleShare(row.bookingId)}
+        >
+          <SendIcon fontSize="small" />
+        </IconButton>
+
+        <IconButton
+          size="small"
+          color="secondary"
+          onClick={() => handleSlipClick(row.bookingId)}
+          title="Slip"
+        >
+          <ReceiptIcon fontSize="small" />
+        </IconButton>
+
+        {/* 📤 Upload Icon (ONLY ACTIVE) */}
+        {selectedList === "active" && (
+          <IconButton
+            size="small"
+            color="success"
+            onClick={() => handleUploadClick(row.bookingId)}
+            title="Upload PDF"
+          >
+            <UploadIcon fontSize="small" />
+          </IconButton>
+        )}
+
+        {/* 👁 Preview Icon */}
+        {selectedList === "active" && row.quotationPdf && (
+          <IconButton
+            size="small"
+            color="primary"
+            onClick={() => handlePreview(row.quotationPdf)}
+            title="Preview PDF"
+          >
+            <PictureAsPdfIcon fontSize="small" />
+          </IconButton>
+        )}
+      </>
+    )}
+
+  </Box>
+
+  <SlipModal
+    open={openSlip}
+    handleClose={handleCloseSlip}
+    bookingData={booking}
+  />
+</TableCell>  
                       </>
                     )}
                   </TableRow>

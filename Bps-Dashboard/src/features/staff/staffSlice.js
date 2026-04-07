@@ -13,7 +13,6 @@ export const createStaff = createAsyncThunk(
         try {
             const res = await axios.post(STAFF_API, formData, {
                 headers: {
-                    "Content-Type": "multipart/form-data",
                     Authorization: `Bearer ${localStorage.getItem("token")}`
                 }
             });
@@ -66,7 +65,6 @@ export const updateStaff = createAsyncThunk(
         try {
             const res = await axios.put(`${STAFF_API}/${id}`, formData, {
                 headers: {
-                    "Content-Type": "multipart/form-data",
                     Authorization: `Bearer ${localStorage.getItem("token")}`
                 }
             });

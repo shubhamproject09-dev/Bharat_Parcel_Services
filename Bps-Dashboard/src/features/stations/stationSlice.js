@@ -33,15 +33,21 @@ export const createStation = createAsyncThunk(
 
 
 export const fetchStations = createAsyncThunk(
-  'stations/fetchStations', async (_, thunkApi) => {
+  'stations/fetchStations',
+  async (token, thunkApi) => {
     try {
-      const res = await axios.get(`${BASE_URL}/getAllStations`);
+      const res = await axios.get(`${BASE_URL}/getAllStations`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
       return res.data.message;
     } catch (error) {
-      return thunkApi.rejectWithValue(error.response?.data?.message || "Failed To fetch Stations");
+      return thunkApi.rejectWithValue(error.response?.data?.message);
     }
   }
 );
+
 export const deleteStation = createAsyncThunk(
   'stations/deleteStation', async (stationId, thunkApi) => {
     try {

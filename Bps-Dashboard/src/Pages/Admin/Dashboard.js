@@ -33,7 +33,7 @@ import {
     bookingRequestCount,
     activeBookingCount,
     cancelledBookingCount,
-    revenueList,
+    revenueList as fetchRevenueList
 } from '../../features/booking/bookingSlice';
 import { getAvailableVehiclesCount } from '../../features/vehicle/vehicleSlice';
 import { fetchavailableCount } from '../../features/Driver/driverSlice';
@@ -59,6 +59,7 @@ const cardStyles = {
 const Dashboard = () => {
     const dispatch = useDispatch();
     const theme = useTheme();
+    const { revenueList } = useSelector(state => state.bookings);
 
     const {
         requestCount,
@@ -75,7 +76,7 @@ const Dashboard = () => {
         dispatch(bookingRequestCount());
         dispatch(activeBookingCount());
         dispatch(cancelledBookingCount());
-        dispatch(revenueList());
+        dispatch(fetchRevenueList());
         dispatch(getAvailableVehiclesCount());
         dispatch(fetchActiveCustomerCount());
         dispatch(fetchavailableCount());
@@ -250,7 +251,12 @@ const Dashboard = () => {
                 <Typography variant="h6" mb={2} >
                     Performance Overview
                 </Typography>
-                <Graph />
+                <Graph
+                    requestCount={requestCount}
+                    active={activeDeliveriesCount}
+                    cancelled={cancelledDeliveriesCount}
+                    revenueList={revenueList}
+                />
             </Paper>
         </Box>
     );

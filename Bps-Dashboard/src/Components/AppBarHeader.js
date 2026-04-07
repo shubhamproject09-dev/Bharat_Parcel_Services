@@ -157,7 +157,7 @@ const AppBarHeader = () => {
                 </Typography>
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    {userRole === 'admin' && (
+                    {/* {userRole === 'admin' && (
                         <Tooltip title="Notifications">
                             <IconButton onClick={handleNotifClick} color="inherit">
                                 <Badge badgeContent={notifications.length} color="error">
@@ -165,7 +165,7 @@ const AppBarHeader = () => {
                                 </Badge>
                             </IconButton>
                         </Tooltip>
-                    )}
+                    )} */}
 
                     {/* New Summary Buttons */}
                     <Button

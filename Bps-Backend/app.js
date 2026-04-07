@@ -1,3 +1,5 @@
+import dotenv from "dotenv";
+dotenv.config();
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -11,10 +13,19 @@ import { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const app = express()
-app.use(cors({
-    origin: process.env.CORS_ORIGIN,
-    credentials: true
-}))
+app.use(
+    cors({
+        origin: [
+            "https://bharatparcel.org",
+            "https://www.bharatparcel.org",
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "https://admin.bharatparcel.org"
+        ],
+        credentials: true
+    })
+);
+
 app.use(express.json(
     {
         limit: "16kb"
@@ -78,6 +89,12 @@ app.use('/api/whatsapp', whatsappRoutes);
 
 import addOptions from './src/router/addRouter.js';
 app.use('/api/v2', addOptions);
+
+import rateListRoutes from "./src/router/rateList.routes.js";
+app.use("/api/v2/rate-list", rateListRoutes);
+
+import cashbookRoutes from "./src/router/cashbook.routes.js";
+app.use("/api/v2/cashbook", cashbookRoutes);
 
 app.use((err, req, res, next) => {
     let statusCode = err.statusCode || 500;

@@ -15,6 +15,8 @@ import ContactReducer from '../features/contact/contactSlice'
 import leadOptionsReducer from '../features/addOptionsSlice/addOptionsSlice'
 import staffReducer from "../features/staff/staffSlice";
 import whatsappReducer from '../features/whatsapp/whatsappSlice';
+import rateListReducer from "../features/RateListSlice/rateListSlice";
+import cashbookReducer from "../features/caseBookSlice/caseBookSlice";
 
 export const store = configureStore({
   reducer: {
@@ -34,5 +36,7 @@ export const store = configureStore({
     leadOptions: leadOptionsReducer,
     staff: staffReducer,
     whatsapp: whatsappReducer,
+    rateList: rateListReducer,
+    cashbook: cashbookReducer
   },
 });

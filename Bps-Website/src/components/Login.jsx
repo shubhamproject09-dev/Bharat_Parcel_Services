@@ -64,7 +64,13 @@ const Login = () => {
             localStorage.setItem("authToken", token);
 
             const profileResponse = await dispatch(fetchUserProfile(token)).unwrap();
-            const role = profileResponse.message?.role;
+
+            const userData = profileResponse.message;   // 👈 FULL USER OBJECT
+
+            // ✅ SAVE USER (MOST IMPORTANT)
+            localStorage.setItem("user", JSON.stringify(userData));
+
+            const role = userData?.role;
 
             window.history.replaceState({}, document.title, "/login");
 

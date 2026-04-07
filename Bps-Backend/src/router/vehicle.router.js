@@ -18,7 +18,7 @@ import { parseFormData } from "../middleware/multerParser.middleware.js";
 const router = express.Router();
 
 
-router.post("/vehicle",parseFormData, createVehicle);
+router.post("/vehicle", parseFormData, createVehicle);
 
 
 router.get("/getAllvehicle", getAllVehicles);
@@ -31,7 +31,7 @@ router.patch("/vehicles/:vehicleId/status", updateVehicleStatus);
 router.get("/vehicle/:id", getVehicleById);
 
 
-router.put("/vehicle/:vehicleId",updateVehicle);
+router.put("/vehicle/:vehicleId", updateVehicle);
 
 
 router.delete("/vehicle/:vehicleId", deleteVehicle);

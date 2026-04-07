@@ -7,6 +7,8 @@ import fs from "fs/promises";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
 import bcrypt from "bcrypt"
+import { getCookieOptions } from "../utils/cookieOptions.js";
+
 // Register a new user
 export const registerUser = asyncHandler(async (req, res) => {
   try {
@@ -97,12 +99,7 @@ export const loginUser = asyncHandler(async (req, res) => {
     { expiresIn: "10h" }
   );
 
-  res.cookie("accessToken", token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    maxAge: 10 * 60 * 60 * 1000
-  });
+  res.cookie("accessToken", token, getCookieOptions(req));
 
   // ✅ SEND FULL PROFILE DATA
   res.status(200).json(
@@ -142,9 +139,7 @@ export const logoutUser = asyncHandler(async (req, res) => {
 
     // Clear the access token cookie
     res.clearCookie("accessToken", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      ...getCookieOptions(req),
       path: "/"
     });
 

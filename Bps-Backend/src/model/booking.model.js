@@ -22,9 +22,26 @@ const ItemSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  insuranceAmount: {
+    type: Number,
+    default: 0,
+    required: false
+  },
+  insuranceCgst: {
+    type: Number,
+    default: 9
+  },
+  insuranceSgst: {
+    type: Number,
+    default: 9
+  },
+  insuranceTotalWithGST: {
+    type: Number,
+    default: 0
+  },
   vppAmount: {
     type: Number,
-    required: true
+    required: false
   },
   toPay: {
     type: String,
@@ -33,11 +50,11 @@ const ItemSchema = new mongoose.Schema({
   },
   weight: {
     type: Number,
-    required: true
+    required: false
   },
   amount: {
     type: Number,
-    required: true
+    required: false
   }
 });
 
@@ -252,6 +269,10 @@ const BookingSchema = new mongoose.Schema(
       type: Number,
       default: 0
     },
+    cancelReason: {
+  type: String,
+  default: ""
+},
     invoiceGenerated: {
       type: Boolean,
       default: false
@@ -380,6 +401,32 @@ BookingSchema.pre("save", async function (next) {
       this.paymentStatus = "Partial";
     } else {
       this.paymentStatus = "Unpaid";
+    }
+
+    /* -----------------------------
+   INSURANCE GST (ADD ITEMS ONLY)
+----------------------------- */
+
+    if (Array.isArray(this.items)) {
+      this.items = this.items.map((item, index) => {
+
+        const base = Number(item.insuranceAmount) || 0;
+
+        if (index > 0 && base > 0) {
+          const cgst = base * 0.09;
+          const sgst = base * 0.09;
+          const total = base + cgst + sgst;
+
+          return {
+            ...item,
+            insuranceCgst: Number(cgst.toFixed(2)),
+            insuranceSgst: Number(sgst.toFixed(2)),
+            insuranceTotalWithGST: Number(total.toFixed(2))
+          };
+        }
+
+        return item;
+      });
     }
 
     /* -----------------------------

@@ -29,21 +29,20 @@ const validationSchema = Yup.object({
     dateofPurchase: Yup.string().required("Required"),
     purchasedFrom: Yup.string().required("Required"),
     PurchasedUnder: Yup.string().required("Required"),
-    purchasePrice: Yup.number().required("Required"),
-    depreciation: Yup.number().required("Required"),
-
-    currentValue: Yup.number().required("Required"),
-
+    purchasePrice: Yup.number().typeError("Must be number").required("Required"),
+    depreciation: Yup.number().typeError("Must be number").required("Required"),
+    currentValue: Yup.number().typeError("Must be number").required("Required"),
     currentInsuranceProvider: Yup.string().required("Required"),
     policyNumber: Yup.string().required("Required"),
     policyType: Yup.string().required("Required"),
-    policyStartDate: Yup.date().required("Required"),
+    policyStartDate: Yup.date()
+        .transform((curr, orig) => (orig === "" ? null : curr))
+        .required("Required"),
     policyEndDate: Yup.date().required("Required").min(
         Yup.ref("policyStartDate"),
         "End date must be after start date"
     ),
-    policyPremium: Yup.number().required("Required"),
-
+    policyPremium: Yup.number().typeError("Must be number").required("Required"),
     lastFitnessRenewalDate: Yup.date().required("Required"),
     currentFitnessValidUpto: Yup.date().required("Required").min(
         Yup.ref("lastFitnessRenewalDate"),
@@ -98,6 +97,8 @@ const VehicleForm = () => {
             addcomment: "",
         },
         validationSchema,
+        validateOnMount: true,
+        validateOnChange: true,
         onSubmit: async (values) => {
             try {
                 await dispatch(addVehicles(values)).unwrap();
@@ -271,6 +272,14 @@ const VehicleForm = () => {
                             fullWidth
                             value={formik.values.PurchasedUnder}
                             onChange={formik.handleChange}
+                            error={
+                                formik.touched.PurchasedUnder &&
+                                Boolean(formik.errors.PurchasedUnder)
+                            }
+                            helperText={
+                                formik.touched.PurchasedUnder &&
+                                formik.errors.PurchasedUnder
+                            }
                         />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 4 }}>
@@ -281,6 +290,8 @@ const VehicleForm = () => {
                             fullWidth
                             value={formik.values.purchasePrice}
                             onChange={formik.handleChange}
+                            error={formik.touched.purchasePrice && Boolean(formik.errors.purchasePrice)}
+                            helperText={formik.touched.purchasePrice && formik.errors.purchasePrice}
                         />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 4 }}>
@@ -291,6 +302,8 @@ const VehicleForm = () => {
                             fullWidth
                             value={formik.values.depreciation}
                             onChange={formik.handleChange}
+                            error={formik.touched.depreciation && Boolean(formik.errors.depreciation)}
+                            helperText={formik.touched.depreciation && formik.errors.depreciation}
                         />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 4 }}>
@@ -301,6 +314,8 @@ const VehicleForm = () => {
                             fullWidth
                             value={formik.values.currentValue}
                             onChange={formik.handleChange}
+                            error={formik.touched.currentValue && Boolean(formik.errors.currentValue)}
+                            helperText={formik.touched.currentValue && formik.errors.currentValue}
                         />
                     </Grid>
                 </Grid>
@@ -372,6 +387,8 @@ const VehicleForm = () => {
                             fullWidth
                             value={formik.values.policyPremium}
                             onChange={formik.handleChange}
+                            error={formik.touched.policyPremium && Boolean(formik.errors.policyPremium)}
+                            helperText={formik.touched.policyPremium && formik.errors.policyPremium}
                         />
                     </Grid>
                 </Grid>
@@ -463,12 +480,12 @@ const VehicleForm = () => {
                     Additional Comments
                 </Typography>
                 <TextField
-                    name="additionalComments"
+                    name="addcomment"
                     label="Additional Comments"
                     multiline
                     rows={4}
                     fullWidth
-                    value={formik.values.additionalComments}
+                    value={formik.values.addcomment}
                     onChange={formik.handleChange}
                 />
 
@@ -477,7 +494,7 @@ const VehicleForm = () => {
                         type="submit"
                         variant="contained"
                         sx={{ backgroundColor: "#004C99" }}
-                        disabled={!formik.isValid || formik.isSubmitting}
+                        disabled={formik.isSubmitting}
                     >
                         Submit
                     </Button>

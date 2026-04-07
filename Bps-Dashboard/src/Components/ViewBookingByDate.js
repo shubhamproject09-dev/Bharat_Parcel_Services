@@ -86,47 +86,6 @@ const ViewBookingByDate = () => {
                 const bookingsData = res.data.bookings || [];
                 setBookings(bookingsData);
 
-                // Calculate enhanced summary
-                const calculatedSummary = {
-                    totalBookings: bookingsData.length,
-
-                    grandTotal: bookingsData.reduce(
-                        (sum, b) => sum + (b.grandTotal || 0),
-                        0
-                    ),
-
-                    totalPaid: bookingsData.reduce((sum, b) => {
-                        const item = b.items?.[0];
-                        return item?.toPay === "paid"
-                            ? sum + Number(b.grandTotal || 0)
-                            : sum;
-                    }, 0),
-
-                    totalToPay: bookingsData.reduce((sum, b) => {
-                        const item = b.items?.[0];
-                        return item?.toPay === "toPay"
-                            ? sum + Number(b.grandTotal || 0)
-                            : sum;
-                    }, 0),
-
-                    totalInsVpp: bookingsData.reduce(
-                        (sum, b) => sum + Number(b.ins_vpp || 0),
-                        0
-                    ),
-
-                    paymentBreakdown: {
-                        fullyPaid: bookingsData.filter(
-                            b => b.items?.[0]?.toPay === "paid"
-                        ).length,
-
-                        unpaid: bookingsData.filter(
-                            b => b.items?.[0]?.toPay === "toPay"
-                        ).length,
-
-                        partiallyPaid: 0
-                    }
-                };
-                setSummary(calculatedSummary);
             } catch (err) {
                 console.error('Error fetching bookings:', err);
             } finally {
@@ -147,28 +106,95 @@ const ViewBookingByDate = () => {
                 booking.bookingId?.toLowerCase().includes(text) ||
                 booking.senderName?.toLowerCase().includes(text) ||
                 booking.receiverName?.toLowerCase().includes(text) ||
-                booking.fromCity?.toLowerCase().includes(text) ||
-                booking.toCity?.toLowerCase().includes(text) ||
+                booking.startStation?.stationName?.toLowerCase().includes(text) ||
+                booking.endStation?.stationName?.toLowerCase().includes(text) ||
                 item.receiptNo?.toLowerCase().includes(text);
 
             const matchesFromCity = fromCity
-                ? booking.fromCity?.toLowerCase().includes(fromCity.toLowerCase())
+                ? booking.startStation?.stationName?.toLowerCase() === fromCity.toLowerCase()
                 : true;
 
             const matchesToCity = toCity
-                ? booking.toCity?.toLowerCase().includes(toCity.toLowerCase())
+                ? booking.endStation?.stationName?.toLowerCase() === toCity.toLowerCase()
                 : true;
 
             return matchesSearch && matchesFromCity && matchesToCity;
         });
     }, [bookings, searchText, fromCity, toCity]);
 
+    // ✅ FILTER KE ACCORDING SUMMARY
+    useEffect(() => {
+        if (!filteredBookings.length) {
+            setSummary({
+                totalBookings: 0,
+                grandTotal: 0,
+                totalPaid: 0,
+                totalToPay: 0,
+                totalInsVpp: 0,
+                paymentBreakdown: {
+                    fullyPaid: 0,
+                    unpaid: 0,
+                    partiallyPaid: 0
+                }
+            });
+            return;
+        }
+
+        const newSummary = {
+            totalBookings: filteredBookings.length,
+
+            grandTotal: filteredBookings.reduce(
+                (sum, b) => sum + (b.grandTotal || 0),
+                0
+            ),
+
+            totalPaid: filteredBookings.reduce((sum, b) => {
+                const item = b.items?.[0];
+                return item?.toPay === "paid"
+                    ? sum + Number(b.grandTotal || 0)
+                    : sum;
+            }, 0),
+
+            totalToPay: filteredBookings.reduce((sum, b) => {
+                const item = b.items?.[0];
+                return item?.toPay === "toPay"
+                    ? sum + Number(b.grandTotal || 0)
+                    : sum;
+            }, 0),
+
+            totalInsVpp: filteredBookings.reduce(
+                (sum, b) => sum + Number(b.ins_vpp || 0),
+                0
+            ),
+
+            paymentBreakdown: {
+                fullyPaid: filteredBookings.filter(
+                    b => b.items?.[0]?.toPay === "paid"
+                ).length,
+
+                unpaid: filteredBookings.filter(
+                    b => b.items?.[0]?.toPay === "toPay"
+                ).length,
+
+                partiallyPaid: 0
+            }
+        };
+
+        setSummary(newSummary);
+
+    }, [filteredBookings]);
+
     const getInsVppAmount = (booking) => {
         return Number(booking.ins_vpp || 0);
     };
 
     const sortedBookings = useMemo(() => {
-        if (!sortConfig.key) return filteredBookings;
+
+        if (!sortConfig.key) {
+            return [...filteredBookings].sort((a, b) => {
+                return new Date(a.createdAt) - new Date(b.createdAt);
+            });
+        }
 
         return [...filteredBookings].sort((a, b) => {
             let aVal = "";
@@ -254,7 +280,7 @@ const ViewBookingByDate = () => {
         ]];
 
         // ===== TABLE BODY =====
-        const body = filteredBookings.map((b, index) => {
+        const body = sortedBookings.map((b, index) => {
             const item = b.items?.[0] || {};
             const payType = item.toPay;
             const totalAmount = b.grandTotal || 0;
@@ -297,21 +323,27 @@ const ViewBookingByDate = () => {
             styles: {
                 fontSize: 7.5,
                 cellPadding: 1.5,
+                fontStyle: "bold",
+                textColor: [0, 0, 0],
+                lineWidth: 0.5,
+                lineColor: [0, 0, 0],
                 valign: "middle",
                 overflow: "linebreak"
             },
 
             headStyles: {
-                fillColor: [240, 240, 240],
+                fillColor: [200, 200, 200],
                 textColor: 0,
                 fontStyle: "bold",
                 fontSize: 8,
-                halign: "center"
+                halign: "center",
+
             },
 
             bodyStyles: {
                 halign: "left"
             },
+
 
             columnStyles: {
                 0: { cellWidth: 8, halign: "center" },
@@ -359,7 +391,10 @@ const ViewBookingByDate = () => {
             theme: "grid",
             styles: {
                 fontSize: 9,
-                cellPadding: 2
+                cellPadding: 2,
+                textColor: [0, 0, 0],
+                lineWidth: 0.5,
+                lineColor: [0, 0, 0],
             },
             columnStyles: {
                 0: { fontStyle: "bold" },
@@ -386,7 +421,7 @@ const ViewBookingByDate = () => {
     };
 
     const downloadBookingExcel = () => {
-        const data = filteredBookings.map((b, index) => {
+        const data = sortedBookings.map((b, index) => {
             const item = b.items?.[0] || {};
             const payType = item.toPay;
             const totalAmount = b.grandTotal || 0;

@@ -15,6 +15,7 @@ import EditNoteIcon from '@mui/icons-material/EditNote';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
+import CurrencyRupeeIcon from '@mui/icons-material/CurrencyRupee';
 
 export const sidebarItems = [
     { label: 'Dashboard', route: '/', icon: <DashboardIcon /> },
@@ -38,6 +39,7 @@ export const sidebarItems = [
     { label: 'Q-Booking', route: '/qbooking', icon: <BookOnlineIcon /> },
     { label: 'Pending List', route: '/pending-list', icon: <AccountBalanceIcon /> },
     { label: 'Bin', route: '/bin', icon: <DeleteForeverIcon /> },
-    //{ label: 'Cashbook', route: '/cashbook', icon: <MenuBookIcon /> },
+    { label: 'Rate List', route: '/rate-list', icon: <CurrencyRupeeIcon /> },
+    { label: 'Cashbook', route: '/cashbook', icon: <MenuBookIcon /> },
 ];
 

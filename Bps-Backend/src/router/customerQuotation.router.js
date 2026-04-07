@@ -21,7 +21,8 @@ import {
   getIncomingQuotations,
   previewReceiptNo,
   sendQuotationWhatsapp,
-  uploadQuotationPdf
+  uploadQuotationPdf,
+  receiveToPayAmount
 } from "../controller/customerQuotation.controller.js";
 import { parseFormData } from "../middleware/multerParser.middleware.js";
 import { upload } from "../middleware/multer.middleware.js";
@@ -62,6 +63,7 @@ router.get("/receipt/preview", verifyJwt, previewReceiptNo);
 router.get("/booking-request-list", verifyJwt, RequestBookingList)
 
 router.patch("/status/:bookingId", updateQuotationStatus);
+router.patch("/receive-payment/:bookingId", verifyJwt, receiveToPayAmount);
 // Route to get a single quotation by its ID
 router.get("/:id", getQuotationById);
 

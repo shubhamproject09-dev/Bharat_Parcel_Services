@@ -8,7 +8,7 @@ import PrintIcon from '@mui/icons-material/Print';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import CompanyLogo from '../assets/logo2.png';
-import companySignature from '../assets/digital.jpeg';
+import companySignature from '../assets/BpsSignature.png';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import BlockIcon from '@mui/icons-material/Block';
@@ -16,7 +16,7 @@ import Chip from '@mui/material/Chip';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import { useDispatch } from "react-redux";
 import { useSelector } from "react-redux";
-import { sendWhatsappBilty } from "../features/whatsapp/whatsappSlice";
+import { sendQuotationWhatsapp } from "../features/whatsapp/whatsappSlice";
 import { PDFDocument } from "pdf-lib";
 
 const QSlipModal = ({ open, handleClose, bookingData }) => {
@@ -111,8 +111,11 @@ const QSlipModal = ({ open, handleClose, bookingData }) => {
   const bottomAddresses = addresses.slice(2); // Kolkata, Ahmedabad, Jaipur, Agra
 
   // API से सीधे डेटा लें
-  const amount = bookingData?.amount || 0; // यह आपके API में 300 है
-  const freight = bookingData?.freight || 0; // यह आपके API में 20 है
+  const amount = bookingData?.productDetails?.reduce(
+    (sum, item) => sum + (Number(item.price) || 0),
+    0
+  ) || 0;
+  const freight = bookingData?.freight || 0;
   const insVppAmount = bookingData?.insVppAmount || 0; // यह आपके API में 900 है
   const grandTotal = bookingData?.grandTotal || 0; // यह आपके API में 1220 है
   const sTax = bookingData?.sTax || 0;
@@ -799,24 +802,26 @@ const QSlipModal = ({ open, handleClose, bookingData }) => {
   };
 
   const handleSendWhatsAppBilty = async () => {
-    try {
-      const pdfBlob = await generateBiltyPdfBlob();
+  try {
+    const pdfBlob = await generateBiltyPdfBlob();
 
-      await dispatch(
-        sendWhatsappBilty({
-          bookingId: bookingData.bookingId,
-          biltyBlob: pdfBlob
-        })
-      ).unwrap();
+    const formData = new FormData();
+    formData.append("bookingId", bookingData.bookingId);
+    formData.append("file", pdfBlob, "quotation.pdf");
 
-      alert("✅ Original Bilty successfully sent on WhatsApp");
-    } catch (error) {
-      alert(
-        error?.message ||
-        "❌ Failed to send Bilty. File size too large or server error."
-      );
+    const res = await dispatch(sendQuotationWhatsapp(formData));
+
+    if (res?.meta?.requestStatus === "fulfilled") {
+      alert("✅ Quotation Bilty sent on WhatsApp");
+    } else {
+      alert("❌ Failed to send");
     }
-  };
+
+  } catch (error) {
+    console.error(error);
+    alert("❌ Error sending WhatsApp");
+  }
+};
 
   const handleDownloadPDF = async () => {
     await loadImageAsBase64(companySignature);
@@ -963,7 +968,7 @@ const QSlipModal = ({ open, handleClose, bookingData }) => {
                             width: 48% !important;
                             padding: 1mm !important;
                             border-radius: 2mm !important;
-                            border: 1px solid #ddd !important;
+                            border: 1px solid #000  !important;
                         }
                         
                         .address-1 {
@@ -1062,14 +1067,14 @@ const QSlipModal = ({ open, handleClose, bookingData }) => {
                             padding: 1mm !important;
                             background-color: #e3f2fd !important;
                             border-radius: 2mm !important;
-                            border: 1px solid #bbdefb !important;
+                            border: 1px solid #000 !important;
                         }
                         
                         .receiver-box {
                             padding: 1mm !important;
                             background-color: #e8f5e9 !important;
                             border-radius: 2mm !important;
-                            border: 1px solid #c8e6c9 !important;
+                            border: 1px solid #000 !important;
                         }
                         
                         .sender-title {
@@ -1100,7 +1105,7 @@ const QSlipModal = ({ open, handleClose, bookingData }) => {
                         }
                         
                         .branch-box {
-                            border: 1px solid #d7ccc8 !important;
+                            border: 1px solid #000  !important;
                             padding: 1mm !important;
                             background-color: #fff !important;
                             border-radius: 2mm !important;
@@ -1163,7 +1168,7 @@ const QSlipModal = ({ open, handleClose, bookingData }) => {
                         }
                         
                         th, td {
-                            border: 1px solid #ddd !important;
+                            border: 1px solid #000 !important;
                             padding: 0.5mm 0.8mm !important;
                             text-align: center !important;
                         }
@@ -1187,14 +1192,13 @@ const QSlipModal = ({ open, handleClose, bookingData }) => {
                             border-top: 2px solid #1a237e !important;
                         }
                         
-                        .chip {
-                            font-size: 7px !important;
-                            font-weight: bold !important;
-                            padding: 0.2mm 1mm !important;
-                            border-radius: 10px !important;
-                            display: inline-block !important;
-                            color: #000 !important
-                        }
+                       .chip {
+    font-size: 10px !important;   /* 🔥 BIG FONT */
+    font-weight: bold !important;
+    background: none !important;  /* ❌ NO COLOR */
+    color: #000 !important;
+    border: none !important;
+}
                         
                         .chip-success {
                             background-color: #d4edda !important;
@@ -1229,7 +1233,7 @@ const QSlipModal = ({ open, handleClose, bookingData }) => {
                             background-color: #fff !important;
                             padding: 1mm !important;
                             border-radius: 2mm !important;
-                            border: 1px solid #e0e0e0 !important;
+                            border: 1px solid #000 !important;
                         }
                         
                         .summary-table {
@@ -1285,24 +1289,24 @@ const QSlipModal = ({ open, handleClose, bookingData }) => {
                         }
                         
                         .customer-signature {
-                            border-top: 2px solid #5d4037 !important;
+                            border-top: 2px solid #000 !important;
                             padding-top: 0.8mm !important;
                             margin-top: 11mm !important;
                             min-height: 15mm !important;
                             font-size: 9px !important;
                             font-weight: bold !important;
-                            color: #5d4037 !important;
+                            color: #000 !important;
                             background-color: #f5f5f5 !important;
                             padding: 0.8mm !important;
                             border-radius: 2mm !important;
                         }
                         
                         .company-signature {
-                            border-top: 2px solid #1a237e !important;
+                            border-top: 2px solid #000 !important;
                             padding-top: 0.8mm !important;
                             font-size: 9px !important;
                             font-weight: bold !important;
-                            color: #1a237e !important;
+                            color: #000 !important;
                             background-color: #f5f5f5 !important;
                             padding: 0.8mm !important;
                             border-radius: 2mm !important;
@@ -1842,8 +1846,8 @@ const QSlipModal = ({ open, handleClose, bookingData }) => {
             </Button>
             <Button
               startIcon={<WhatsAppIcon />}
-              onClick={handleSendWhatsAppBilty}
-              disabled={loading}
+  onClick={handleSendWhatsAppBilty}
+  disabled={loading}
               sx={{
                 px: 3,
                 ml: 2,

@@ -91,6 +91,8 @@ const QuotationForm = () => {
   );
   const { states, cities } = useSelector((state) => state.location);
   const { list: stations } = useSelector((state) => state.stations);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
   useEffect(() => {
     dispatch(fetchStates());
     dispatch(fetchStations());
@@ -304,16 +306,34 @@ const QuotationForm = () => {
                       <DatePicker
                         label="Booking Date"
                         value={values.quotationDate}
-                        onChange={(val) => setFieldValue("quotationDate", val)}
-                        minDate={getDateBeforeDays(10)}
+                        onChange={(val) => {
+                          if (val) {
+                            const selected = new Date(val);
+                            selected.setHours(0, 0, 0, 0);
+
+                            if (selected > today) {
+                              setFieldValue("quotationDate", null);
+
+                              setSnackbar({
+                                open: true,
+                                message: "Please select today or previous date",
+                                severity: "error",
+                              });
+                              return;
+                            }
+                          }
+                          setFieldValue("quotationDate", val);
+                        }}
+                        minDate={getDateBeforeDays(25)}
+                        maxDate={today}   // ✅ future disabled
                         format="dd/MM/yyyy"
                         slotProps={{
                           textField: {
                             fullWidth: true,
                             name: "quotationDate",
-                            error: false,
+                            helperText: "Only today or previous dates allowed",
                             InputProps: {
-                              sx: { width: 490 }, // Increase height here
+                              sx: { width: 490 },
                             },
                           },
                         }}
@@ -326,7 +346,7 @@ const QuotationForm = () => {
                         onChange={(val) =>
                           setFieldValue("proposedDeliveryDate", val)
                         }
-                        minDate={values.quotationDate || getDateBeforeDays(10)}
+                        minDate={values.quotationDate || getDateBeforeDays(25)}
                         format="dd/MM/yyyy"
                         slotProps={{
                           textField: {
@@ -1034,20 +1054,32 @@ const EffectSyncTotal = ({ values, setFieldValue }) => {
     const taxPercent = parseFloat(values.sTax) || 0;
     const gstAmount = (basePrice * taxPercent) / 100;
 
-    // ✅ 4. Final Total
-    const finalTotal =
+    const rawTotal =
       basePrice +
       gstAmount +
       biltyAmount +
       insVppAmount;
 
-    // ✅ 5. Set values
+    // 🔥 custom rounding logic
+    const decimal = rawTotal - Math.floor(rawTotal);
+
+    let roundedTotal;
+    if (decimal > 0.5) {
+      roundedTotal = Math.ceil(rawTotal);
+    } else {
+      roundedTotal = Math.floor(rawTotal);
+    }
+
+    // round off difference
+    const roundOff = roundedTotal - rawTotal;
+
+    // ✅ set values
     setFieldValue("amount", basePrice.toFixed(2));
     setFieldValue("biltyAmount", biltyAmount.toFixed(2));
     setFieldValue("billTotal", basePrice.toFixed(2));
-    setFieldValue("roundOff", "0.00");
-    setFieldValue("grandTotal", finalTotal.toFixed(2));
-    setFieldValue("finalTotal", finalTotal.toFixed(2));
+    setFieldValue("roundOff", roundOff.toFixed(2));
+    setFieldValue("grandTotal", rawTotal.toFixed(2));
+    setFieldValue("finalTotal", roundedTotal.toFixed(2));
 
   }, [
     values.productDetails,
