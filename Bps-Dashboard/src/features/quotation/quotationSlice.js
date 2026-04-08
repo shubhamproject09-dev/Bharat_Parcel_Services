@@ -427,16 +427,26 @@ const quotationSlice = createSlice({
         state.error = null
       })
       .addCase(updateBookingById.fulfilled, (state, action) => {
-        state.status = 'succeeded'
-        state.error = null
-        const updatedBooking = action.payload
-        const index = state.list.findIndex(booking => booking.bookingId === updatedBooking.bookingId);
-        if (index !== -1) {
-          state.list[index] = updatedBooking;
-        }
+  state.status = 'succeeded';
+  state.error = null;
 
-        state.form = initialState.form
-      })
+  const updatedBooking = action.payload;
+
+  // ✅ Ensure list is array
+  if (!Array.isArray(state.list)) {
+    state.list = [];
+  }
+
+  const index = state.list.findIndex(
+    booking => booking.bookingId === updatedBooking.bookingId
+  );
+
+  if (index !== -1) {
+    state.list[index] = updatedBooking;
+  }
+
+  state.form = initialState.form;
+})
       .addCase(revenueList.pending, (state) => {
         state.loading = true;
         state.error = null

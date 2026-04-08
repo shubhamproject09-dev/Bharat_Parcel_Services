@@ -174,6 +174,15 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
                     }}>
                         PAN : AAECB6506F
                     </Typography>
+                    <Typography sx={{
+    fontSize: '11px',
+    fontWeight: '900',
+    fontFamily: 'Arial, sans-serif',
+    mt: 0.5,
+    letterSpacing: '1px'
+}}>
+     PAYMENT: {bookingData?.items?.[0]?.toPay?.toUpperCase()}
+</Typography>
                 </Box>
             </Grid>
 
@@ -485,7 +494,7 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
                                     {formatCurrency(item.vppAmount)}
                                 </TableCell>
                                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>
-                                    {item.toPay}
+                                  {item.toPay?.toUpperCase()}
                                 </TableCell>
                                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>
                                     {formatCurrency(
@@ -572,7 +581,18 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
                                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{bookingData.items[0].weight} kg</TableCell>
                                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(bookingData.items[0].insurance)}</TableCell>
                                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(bookingData.items[0].vppAmount)}</TableCell>
-                                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{bookingData.items[0].toPay}</TableCell>
+                               <TableCell
+    align="center"
+    sx={{
+        border: "1px solid #ddd",
+        fontSize: "12px",
+        fontWeight: 900,
+        letterSpacing: "1px",
+        textTransform: "uppercase"
+    }}
+>
+    {bookingData.items[0].toPay}
+</TableCell>
                                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(bookingData.items[0].amount)}</TableCell>
                             </TableRow>
                         </TableBody>
@@ -615,9 +635,18 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
                                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{bookingData.items[1].refNo}</TableCell>
                                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(bookingData.items[1].insurance)}</TableCell>
                                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(bookingData.items[1].insuranceAmount)}</TableCell>
-                                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>
-                                    {bookingData.items[1].toPay}
-                                </TableCell>
+                               <TableCell
+    align="center"
+    sx={{
+        border: "1px solid #ddd",
+        fontSize: "12px",
+        fontWeight: 900,
+        letterSpacing: "1px",
+        textTransform: "uppercase"
+    }}
+>
+    {bookingData.items[1].toPay}
+</TableCell>
                                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(bookingData.items[1].insuranceCgst)}</TableCell>
                                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(bookingData.items[1].insuranceSgst)}</TableCell>
                                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(bookingData.items[1].insuranceTotalWithGST)}</TableCell>
@@ -1398,6 +1427,14 @@ if (res?.meta?.requestStatus === "fulfilled") {
                             <div class="gst-info">
                                 <div>GSTIN : ${bookingData?.startStation?.gst}</div>
                                 <div>PAN : AAECB6506F</div>
+                                 <div style="
+    font-size: 11px;
+    font-weight: 900;
+    margin-top: 2px;
+    letter-spacing: 1px;
+">
+   PAYMENT: ${bookingData?.items?.[0]?.toPay?.toUpperCase()}
+</div>
                             </div>
                         </div>
                         
@@ -1488,8 +1525,11 @@ if (res?.meta?.requestStatus === "fulfilled") {
             <td>${bookingData.items[0].weight} kg</td>
             <td>${formatCurrency(bookingData.items[0].insurance)}</td>
             <td>${formatCurrency(bookingData.items[0].vppAmount)}</td>
-          <td style="font-size:12px;font-weight:bold;">
-  ${bookingData.items[0].toPay}
+          <td style="  font-size: 14px;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;">
+ ${bookingData.items[0].toPay?.toUpperCase()}
 </td>
             <td>${formatCurrency(bookingData.items[0].amount)}</td>
         </tr>
@@ -1522,7 +1562,14 @@ if (res?.meta?.requestStatus === "fulfilled") {
             <td>${bookingData.items[0].weight} kg</td>
             <td>${formatCurrency(bookingData.items[0].insurance)}</td>
             <td>${formatCurrency(bookingData.items[0].vppAmount)}</td>
-            <td>${bookingData.items[0].toPay}</td>
+           <td style="
+    font-size: 14px;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+">
+  ${bookingData.items[0].toPay?.toUpperCase()}
+</td>
             <td>${formatCurrency(bookingData.items[0].amount)}</td>
         </tr>
     </tbody>
@@ -1657,6 +1704,14 @@ if (res?.meta?.requestStatus === "fulfilled") {
                             <div class="gst-info">
                                 <div>GSTIN : ${bookingData?.startStation?.gst}</div>
                                 <div>PAN : AAECB6506F</div>
+                                 <div style="
+    font-size: 11px;
+    font-weight: 900;
+    margin-top: 2px;
+    letter-spacing: 1px;
+">
+ PAYMENT: ${bookingData?.items?.[0]?.toPay?.toUpperCase()}
+</div>
                             </div>
                         </div>
                         
@@ -1747,7 +1802,14 @@ if (res?.meta?.requestStatus === "fulfilled") {
             <td>${bookingData.items[0].weight} kg</td>
             <td>${formatCurrency(bookingData.items[0].insurance)}</td>
             <td>${formatCurrency(bookingData.items[0].vppAmount)}</td>
-            <td>${bookingData.items[0].toPay}</td>
+          <td style="
+    font-size: 14px;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+">
+   ${bookingData.items[0].toPay?.toUpperCase()}
+</td>
             <td>${formatCurrency(bookingData.items[0].amount)}</td>
         </tr>
     </tbody>
@@ -1779,7 +1841,14 @@ if (res?.meta?.requestStatus === "fulfilled") {
             <td>${bookingData.items[0].weight} kg</td>
             <td>${formatCurrency(bookingData.items[0].insurance)}</td>
             <td>${formatCurrency(bookingData.items[0].vppAmount)}</td>
-            <td>${bookingData.items[0].toPay}</td>
+          <td style="
+    font-size: 14px;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+">
+  ${bookingData.items[0].toPay?.toUpperCase()}
+</td>
             <td>${formatCurrency(bookingData.items[0].amount)}</td>
         </tr>
     </tbody>

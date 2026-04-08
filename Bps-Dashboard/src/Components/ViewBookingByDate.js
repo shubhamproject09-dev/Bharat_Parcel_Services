@@ -270,6 +270,7 @@ const ViewBookingByDate = () => {
             "Sender",
             "Receiver",
             "Route",
+            "QT",
             "Wt",
             "INS/VPP",
             "Bilty",
@@ -303,6 +304,7 @@ const ViewBookingByDate = () => {
                 b.senderName || "-",
                 b.receiverName || "-",
                 `${b.startStationName} - ${b.endStationName}`,
+                item.quantity || 0,
                 item.weight || 0,
                 insVpp,
                 bilty,
@@ -347,20 +349,21 @@ const ViewBookingByDate = () => {
 
             columnStyles: {
                 0: { cellWidth: 8, halign: "center" },
-                1: { cellWidth: 30 },
-                2: { cellWidth: 18 },
+                1: { cellWidth: 28 },
+                2: { cellWidth: 16 },
                 3: { cellWidth: 22 },
                 4: { cellWidth: 16 },
                 5: { cellWidth: 32 },
                 6: { cellWidth: 32 },
                 7: { cellWidth: 28 },
-                8: { cellWidth: 12, halign: "center" },
-                9: { cellWidth: 14, halign: "right" }, // INS/VPP
-                10: { cellWidth: 14, halign: "right" },
-                11: { cellWidth: 14, halign: "right" },
-                12: { cellWidth: 14, halign: "right" },
-                13: { cellWidth: 14, halign: "right" },
-                14: { cellWidth: 14 }
+                8: { cellWidth: 10, halign: "center" },
+                9: { cellWidth: 10, halign: "right" }, // INS/VPP
+                10: { cellWidth: 12, halign: "right" },
+                11: { cellWidth: 12, halign: "right" },
+                12: { cellWidth: 12, halign: "right" },
+                13: { cellWidth: 12, halign: "right" },
+                14: { cellWidth: 12 },
+                15: { cellWidth: 14 }
             }
         });
 
@@ -444,6 +447,7 @@ const ViewBookingByDate = () => {
                 "Sender": b.senderName,
                 "Receiver": b.receiverName,
                 "Route": `${b.startStationName} - ${b.endStationName}`,
+                "QT": item.quantity || 0,
                 "Weight": item.weight || 0,
                 "INS / VPP": insVpp,
                 "Bilty": bilty,
@@ -691,19 +695,19 @@ const ViewBookingByDate = () => {
                         </Box>
 
                         <TableContainer sx={{ maxHeight: 600 }}>
-                            <Table stickyHeader>
+                            <Table stickyHeader size="small">
                                 <TableHead>
                                     <TableRow sx={{ bgcolor: "primary.main" }}>
-                                        <TableCell sx={oneLineCell}>S.No</TableCell>
-                                        <TableCell sx={oneLineCell}>Booking ID</TableCell>
-                                        <TableCell sx={oneLineCell}>Booking Date</TableCell>
+                                        <TableCell sx={{ ...oneLineCell, fontWeight: "bold", fontSize: "13px" }}>S.No</TableCell>
+                                        <TableCell sx={{ ...oneLineCell, fontWeight: "bold", fontSize: "13px" }}>Booking ID</TableCell>
+                                        <TableCell sx={{ ...oneLineCell, fontWeight: "bold", fontSize: "13px" }}>Booking Date</TableCell>
                                         <TableCell
                                             sx={{ cursor: "pointer" }}
                                             onClick={() => handleSort("bilty")}
                                         >
                                             Receipt No {sortConfig.key === "bilty" ? (sortConfig.direction === "asc" ? "↑" : "↓") : "↕"}
                                         </TableCell>
-                                        <TableCell sx={oneLineCell}>Ref No</TableCell>
+                                        <TableCell sx={{ ...oneLineCell, fontWeight: "bold", fontSize: "13px" }}>Ref No</TableCell>
                                         <TableCell
                                             sx={{ cursor: "pointer" }}
                                             onClick={() => handleSort("sender")}
@@ -716,11 +720,12 @@ const ViewBookingByDate = () => {
                                         >
                                             Receiver {sortConfig.key === "receiver" ? (sortConfig.direction === "asc" ? "↑" : "↓") : "↕"}
                                         </TableCell>
-                                        <TableCell sx={oneLineCell}>Route</TableCell>
-                                        <TableCell sx={oneLineCell}>Weight</TableCell>
-                                        <TableCell>Amount Details</TableCell>
-                                        <TableCell sx={oneLineCell}>Paid</TableCell>
-                                        <TableCell sx={oneLineCell}>To Pay</TableCell>
+                                        <TableCell sx={{ ...oneLineCell, fontWeight: "bold", fontSize: "13px" }}>Route</TableCell>
+                                        <TableCell sx={{ ...oneLineCell, fontWeight: "bold", fontSize: "13px" }}>QT</TableCell>
+                                        <TableCell sx={{ ...oneLineCell, fontWeight: "bold", fontSize: "13px" }}>Weight</TableCell>
+                                        <TableCell sx={{ ...oneLineCell, fontWeight: "bold", fontSize: "13px" }}>Amount Details</TableCell>
+                                        <TableCell sx={{ ...oneLineCell, fontWeight: "bold", fontSize: "13px" }}>Paid</TableCell>
+                                        <TableCell sx={{ ...oneLineCell, fontWeight: "bold", fontSize: "13px" }}>To Pay</TableCell>
                                     </TableRow>
                                 </TableHead>
 
@@ -744,6 +749,10 @@ const ViewBookingByDate = () => {
                                                 key={booking._id}
                                                 hover
                                                 sx={{
+                                                    "& td": {
+                                                        padding: "4px 8px",   // 🔥 MAIN FIX
+                                                        fontSize: "12px"
+                                                    },
                                                     "&:nth-of-type(odd)": { bgcolor: "action.hover" },
                                                     "&:hover": { bgcolor: "action.selected" }
                                                 }}
@@ -786,6 +795,10 @@ const ViewBookingByDate = () => {
                                                 {/* Route */}
                                                 <TableCell sx={oneLineCell}>
                                                     {booking.startStationName} - {booking.endStationName}
+                                                </TableCell>
+
+                                                <TableCell sx={oneLineCell}>
+                                                    {booking.items?.[0]?.quantity || 0}
                                                 </TableCell>
 
                                                 {/* Weight */}

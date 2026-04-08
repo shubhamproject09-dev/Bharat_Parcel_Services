@@ -147,6 +147,13 @@ const QSlipModal = ({ open, handleClose, bookingData }) => {
   const roundedGrandTotal = grandTotal; // API से ही grandTotal लें
   const roundOff = (roundedGrandTotal - grandTotalBeforeRound).toFixed(2);
 
+  const paymentType =
+  bookingData?.productDetails?.[0]?.topay === "paid"
+    ? "PAID"
+    : bookingData?.productDetails?.[0]?.topay === "toPay"
+    ? "TOPAY"
+    : "N/A";
+
   const Invoice = ({ copyType = "Original" }) => (
     <Paper elevation={0} sx={{
       border: '2px solid #000',
@@ -196,13 +203,15 @@ const QSlipModal = ({ open, handleClose, bookingData }) => {
             SUBJECT TO {bookingData?.startStation?.stationName || bookingData?.startStationName || 'DELHI'} JURISDICTION
           </Typography>
         </Box>
-        <Box textAlign="right" sx={{
-          backgroundColor: '#f5f5f5',
-          p: 0.5,
-          borderRadius: '4px',
-          border: '1px solid #ddd'
-        }}>
-        </Box>
+       <Box textAlign="right">
+  <Typography sx={{
+    fontSize: '14px',
+    fontWeight: 'bold',
+    textTransform: 'uppercase'
+  }}>
+    PAYMENT: {paymentType}
+  </Typography>
+</Box>
       </Grid>
 
       {/* Top Addresses (Delhi & Mumbai) */}
@@ -501,19 +510,19 @@ const QSlipModal = ({ open, handleClose, bookingData }) => {
                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(item.insurance)}</TableCell>
                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(item.vppAmount)}</TableCell>
                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(item.price)}</TableCell>
-                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>
-                  <Chip
-                    size="small"
-                    label={badge.label}
-                    color={badge.color}
-                    icon={badge.icon}
-                    sx={{
-                      height: '18px',
-                      fontSize: '8px',
-                      '& .MuiChip-icon': { fontSize: '10px' }
-                    }}
-                  />
-                </TableCell>
+               <TableCell align="center" sx={{ border: "1px solid #ddd" }}>
+  <span style={{
+    fontWeight: "bold",
+    fontSize: "14px",
+    textTransform: "uppercase"
+  }}>
+    {item.topay === "paid"
+      ? "PAID"
+      : item.topay === "toPay"
+      ? "TOPAY"
+      : "N/A"}
+  </span>
+</TableCell>
               </TableRow>
             );
           })}
@@ -915,7 +924,7 @@ const QSlipModal = ({ open, handleClose, bookingData }) => {
                         /* Company Header */
                        .company-header {
     display: grid !important;
-    grid-template-columns: 15mm 1fr 15mm !important;
+    grid-template-columns: 15mm 1fr auto !important;
     align-items: center !important;
     margin-bottom: 2mm !important;
     padding-bottom: 1mm !important;
@@ -1336,6 +1345,14 @@ const QSlipModal = ({ open, handleClose, bookingData }) => {
                             background: #f5f5f5 !important;
                             border-radius: 2mm !important;
                         }
+                            .payment-box {
+    font-size: 14px !important;
+     padding-left: 5px;
+    font-weight: bold !important;
+    text-transform: uppercase !important;
+     text-align: right !important;
+    white-space: nowrap !important;
+}
                     }
                     
                     @media screen {
@@ -1368,6 +1385,9 @@ const QSlipModal = ({ open, handleClose, bookingData }) => {
                                 <div class="company-name">BHARAT PARCEL SERVICES PVT. LTD.</div>
                                 <div class="jurisdiction">SUBJECT TO ${bookingData?.startStation?.stationName || bookingData?.startStationName || 'DELHI'} JURISDICTION</div>
                             </div>
+                             <div class="payment-box">
+        PAYMENT: ${paymentType}
+    </div>
                         </div>
                         
                         <div class="top-addresses">
@@ -1458,8 +1478,18 @@ const QSlipModal = ({ open, handleClose, bookingData }) => {
                                             <td>${formatCurrency(item.vppAmount || 0)}</td>
                                             <td>${formatCurrency(item.price)}</td>
                                             <td>
-                                                <span class="chip ${chipClass}">${badge.label}</span>
-                                            </td>
+  <span style="
+    font-weight:bold;
+    font-size:14px;
+    text-transform:uppercase;
+  ">
+    ${item.topay === "paid"
+      ? "PAID"
+      : item.topay === "toPay"
+      ? "TOPAY"
+      : "N/A"}
+  </span>
+</td>
                                         </tr>
                                     `;
     }).join('')}
@@ -1572,6 +1602,9 @@ const QSlipModal = ({ open, handleClose, bookingData }) => {
                                 <div class="company-name">BHARAT PARCEL SERVICES PVT. LTD.</div>
                                 <div class="jurisdiction">SUBJECT TO ${bookingData?.startStation?.stationName || bookingData?.startStationName || 'DELHI'} JURISDICTION</div>
                             </div>
+                             <div class="payment-box">
+        PAYMENT: ${paymentType}
+    </div>
                         </div>
                         
                         <div class="top-addresses">
@@ -1662,8 +1695,18 @@ const QSlipModal = ({ open, handleClose, bookingData }) => {
                                             <td>${formatCurrency(item.vppAmount || 0)}</td>
                                             <td>${formatCurrency(item.price)}</td>
                                             <td>
-                                                <span class="chip ${chipClass}">${badge.label}</span>
-                                            </td>
+  <span style="
+    font-weight:bold;
+    font-size:14px;
+    text-transform:uppercase;
+  ">
+    ${item.topay === "paid"
+      ? "PAID"
+      : item.topay === "toPay"
+      ? "TOPAY"
+      : "N/A"}
+  </span>
+</td>
                                         </tr>
                                     `;
     }).join('')}

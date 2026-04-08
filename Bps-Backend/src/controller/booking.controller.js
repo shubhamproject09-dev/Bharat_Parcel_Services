@@ -466,7 +466,6 @@ export const updateBooking = async (req, res) => {
     const { id } = req.params;
     const updates = { ...req.body };
 
-    // Resolve stations safely
     if (updates.startStation) {
       updates.startStation = await resolveStation(updates.startStation);
     }
@@ -474,10 +473,10 @@ export const updateBooking = async (req, res) => {
       updates.endStation = await resolveStation(updates.endStation);
     }
 
-    // 🔒 Protect receipt numbers (do not overwrite)
-    if (updates.items) {
-      delete updates.items; // items sirf create ke time change
-    }
+    // ✅ REMOVE THIS
+    // if (updates.items) {
+    //   delete updates.items;
+    // }
 
     const booking = await Booking.findOneAndUpdate(
       { bookingId: id },
@@ -487,22 +486,8 @@ export const updateBooking = async (req, res) => {
       .populate('startStation endStation')
       .lean();
 
-    if (!booking) {
-      return res.status(404).json({ message: "Booking not found" });
-    }
-
-    // ✅ Format dates in response
-    booking.bookingDate = booking.bookingDate
-      ? moment(booking.bookingDate).tz("Asia/Kolkata").format("DD-MM-YYYY")
-      : null;
-
-    booking.deliveryDate = booking.deliveryDate
-      ? moment(booking.deliveryDate).tz("Asia/Kolkata").format("DD-MM-YYYY")
-      : null;
-
-    res.status(200).json(booking); // 🔥 FULL UPDATED DATA
+    res.status(200).json(booking);
   } catch (err) {
-    console.error(err);
     res.status(400).json({ message: err.message });
   }
 };

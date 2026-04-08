@@ -797,7 +797,7 @@ const EditBooking = () => {
                               size="small"
                               label="To Pay / Paid"
                               name={`items[${index}].toPay`}
-                              value={item.toPay || "toPay"}
+                             value={item.toPay}
                               onChange={handleChange}
                             >
                               {toPay.map((p) => (

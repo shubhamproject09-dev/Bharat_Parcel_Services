@@ -295,6 +295,7 @@ const ViewQuotationBtDate = () => {
             "Sender",
             "Receiver",
             "Route",
+            "QT",
             "Wt",
             "Freight",
             "INS/VPP",
@@ -325,6 +326,7 @@ const ViewQuotationBtDate = () => {
                 b.fromCustomerName || "-",
                 b.toCustomerName || "-",
                 `${b.startStationName} - ${b.endStation}`,
+                product.quantity || 0,
                 product.weight || 0,
                 b.freight || 0,
                 b.insVppAmount || 0,
@@ -368,19 +370,20 @@ const ViewQuotationBtDate = () => {
 
             columnStyles: {
                 0: { cellWidth: 8, halign: "center" },   // S.No
-                1: { cellWidth: 32 },                    // Booking ID
+                1: { cellWidth: 30 },                    // Booking ID
                 2: { cellWidth: 18 },                     // Booking Date
-                3: { cellWidth: 32 },                    // Bilty
+                3: { cellWidth: 28 },                    // Bilty
                 4: { cellWidth: 12 },                    // Ref
                 5: { cellWidth: 32 },                    // Sender
                 6: { cellWidth: 32 },                    // Receiver
                 7: { cellWidth: 28 },                    // Route
-                8: { cellWidth: 12, halign: "center" },  // Weight
-                9: { cellWidth: 14, halign: "right" },  // Freight
-                10: { cellWidth: 16, halign: "right" },  // INS/VPP
-                11: { cellWidth: 14, halign: "right" },   // Paid
-                12: { cellWidth: 14, halign: "right" },   // To pay
-                13: { cellWidth: 14, halign: "right" },   // Total
+                8: { cellWidth: 10, halign: "center" },  // Weight
+                9: { cellWidth: 10, halign: "center" },  // Freight
+                10: { cellWidth: 14, halign: "center" },  // INS/VPP
+                11: { cellWidth: 14, halign: "center" },   // Paid
+                12: { cellWidth: 14, halign: "center" },   // To pay
+                13: { cellWidth: 14, halign: "center" },   // Total
+                14: { cellWidth: 14 }
             }
         });
 
@@ -463,6 +466,7 @@ const ViewQuotationBtDate = () => {
                 "Sender": b.fromCustomerName,
                 "Receiver": b.toCustomerName,
                 "Route": `${b.startStationName} - ${b.endStation}`,
+                "QT": product.quantity || 0,
                 "Weight": product.weight || 0,
                 "Amount": b.amount || b.productTotal || 0,
                 "Freight": b.freight || 0,
@@ -563,18 +567,6 @@ const ViewQuotationBtDate = () => {
                                 </Typography>
                                 <Typography variant="h4">
                                     ₹{summary.balanceDue.toLocaleString()}
-                                </Typography>
-                            </CardContent>
-                        </Card>
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 3 }}>
-                        <Card sx={{ bgcolor: 'secondary.light', color: 'white' }}>
-                            <CardContent>
-                                <Typography variant="h6">
-                                    INS / VPP Total
-                                </Typography>
-                                <Typography variant="h4">
-                                    ₹{summary.totalInsVpp.toLocaleString()}
                                 </Typography>
                             </CardContent>
                         </Card>
@@ -721,7 +713,7 @@ const ViewQuotationBtDate = () => {
 
 
                         <TableContainer sx={{ maxHeight: 600 }}>
-                            <Table stickyHeader>
+                            <Table stickyHeader size="small">
                                 <TableHead>
                                     <TableRow sx={{ bgcolor: 'primary.main' }}>
                                         <TableCell sx={{ color: '#000', fontWeight: 'bold' }}>S.No</TableCell>
@@ -749,6 +741,7 @@ const ViewQuotationBtDate = () => {
                                             Receiver <SortArrow column="receiver" />
                                         </TableCell>
                                         <TableCell sx={{ color: '#000', fontWeight: 'bold' }}>Route</TableCell>
+                                        <TableCell sx={{ color: '#000', fontWeight: 'bold' }}>QT</TableCell>
                                         <TableCell sx={{ color: '#000', fontWeight: 'bold' }}>Weight</TableCell>
                                         <TableCell sx={{ color: '#000', fontWeight: 'bold' }}>Amount Details</TableCell>
                                         <TableCell sx={{ color: '#000', fontWeight: 'bold' }}>Paid</TableCell>
@@ -776,6 +769,10 @@ const ViewQuotationBtDate = () => {
                                                 key={booking._id}
                                                 hover
                                                 sx={{
+                                                    "& td": {
+                                                        padding: "4px 8px",   // 🔥 compact row
+                                                        fontSize: "12px"
+                                                    },
                                                     '&:nth-of-type(odd)': { bgcolor: 'action.hover' },
                                                     '&:hover': { bgcolor: 'action.selected' }
                                                 }}
@@ -819,6 +816,10 @@ const ViewQuotationBtDate = () => {
                                                 {/* Route */}
                                                 <TableCell sx={oneLineCell}>
                                                     {booking.startStationName} - {booking.endStation}
+                                                </TableCell>
+
+                                                <TableCell sx={oneLineCell}>
+                                                    {product.quantity || 0}
                                                 </TableCell>
 
                                                 {/* Weight */}
