@@ -113,6 +113,36 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
             background: copyType === "Duplicate" ? '#f9f9f9' : '#fff',
             height: '100%'
         }}>
+            {/* 🔴 CANCEL WATERMARK */}
+            {bookingData?.cancelReason && (
+                <Box
+                    sx={{
+                        position: "absolute",
+                        top: "50%",
+                        left: "50%",
+                        transform: "translate(-50%, -50%) rotate(-35deg)",
+                        fontSize: "140px", // 🔥 bada
+                        fontWeight: "900",
+                        color: "rgba(255, 0, 0, 0.18)", // 🔥 dark kiya
+                        zIndex: 0,
+                        pointerEvents: "none",
+                        whiteSpace: "nowrap",
+                        width: "100%",
+                        textAlign: "center",
+                    }}
+                >
+                    CANCEL
+                    <Typography
+                        sx={{
+                            fontSize: "28px",
+                            fontWeight: "bold",
+                            color: "rgba(255, 0, 0, 0.25)",
+                        }}
+                    >
+                        {bookingData.cancelReason}
+                    </Typography>
+                </Box>
+            )}
             {/* Company Header with Colors */}
             <Grid container alignItems="center" justifyContent="space-between" sx={{
                 mb: 1.5,
@@ -175,14 +205,26 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
                         PAN : AAECB6506F
                     </Typography>
                     <Typography sx={{
-    fontSize: '11px',
-    fontWeight: '900',
-    fontFamily: 'Arial, sans-serif',
-    mt: 0.5,
-    letterSpacing: '1px'
-}}>
-     PAYMENT: {bookingData?.items?.[0]?.toPay?.toUpperCase()}
-</Typography>
+                        fontSize: '11px',
+                        fontWeight: '900',
+                        fontFamily: 'Arial, sans-serif',
+                        mt: 0.5,
+                        letterSpacing: '1px'
+                    }}>
+                        PAYMENT: {bookingData?.items?.[0]?.toPay?.toUpperCase()}
+                    </Typography>
+                    {bookingData?.cancelReason && (
+                        <Typography
+                            sx={{
+                                fontSize: "11px",
+                                fontWeight: "bold",
+                                color: "red",
+                                mt: 0.5,
+                            }}
+                        >
+                            CANCELLED
+                        </Typography>
+                    )}
                 </Box>
             </Grid>
 
@@ -494,7 +536,7 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
                                     {formatCurrency(item.vppAmount)}
                                 </TableCell>
                                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>
-                                  {item.toPay?.toUpperCase()}
+                                    {item.toPay?.toUpperCase()}
                                 </TableCell>
                                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>
                                     {formatCurrency(
@@ -581,18 +623,18 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
                                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{bookingData.items[0].weight} kg</TableCell>
                                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(bookingData.items[0].insurance)}</TableCell>
                                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(bookingData.items[0].vppAmount)}</TableCell>
-                               <TableCell
-    align="center"
-    sx={{
-        border: "1px solid #ddd",
-        fontSize: "12px",
-        fontWeight: 900,
-        letterSpacing: "1px",
-        textTransform: "uppercase"
-    }}
->
-    {bookingData.items[0].toPay}
-</TableCell>
+                                <TableCell
+                                    align="center"
+                                    sx={{
+                                        border: "1px solid #ddd",
+                                        fontSize: "12px",
+                                        fontWeight: 900,
+                                        letterSpacing: "1px",
+                                        textTransform: "uppercase"
+                                    }}
+                                >
+                                    {bookingData.items[0].toPay}
+                                </TableCell>
                                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(bookingData.items[0].amount)}</TableCell>
                             </TableRow>
                         </TableBody>
@@ -635,18 +677,18 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
                                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{bookingData.items[1].refNo}</TableCell>
                                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(bookingData.items[1].insurance)}</TableCell>
                                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(bookingData.items[1].insuranceAmount)}</TableCell>
-                               <TableCell
-    align="center"
-    sx={{
-        border: "1px solid #ddd",
-        fontSize: "12px",
-        fontWeight: 900,
-        letterSpacing: "1px",
-        textTransform: "uppercase"
-    }}
->
-    {bookingData.items[1].toPay}
-</TableCell>
+                                <TableCell
+                                    align="center"
+                                    sx={{
+                                        border: "1px solid #ddd",
+                                        fontSize: "12px",
+                                        fontWeight: 900,
+                                        letterSpacing: "1px",
+                                        textTransform: "uppercase"
+                                    }}
+                                >
+                                    {bookingData.items[1].toPay}
+                                </TableCell>
                                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(bookingData.items[1].insuranceCgst)}</TableCell>
                                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(bookingData.items[1].insuranceSgst)}</TableCell>
                                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(bookingData.items[1].insuranceTotalWithGST)}</TableCell>
@@ -851,30 +893,30 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
         </Paper>
     );
 
-const generatePdfBlob = async () => {
-    const element = whatsappRef.current;
+    const generatePdfBlob = async () => {
+        const element = whatsappRef.current;
 
-    const opt = {
-        margin: 5,
-        filename: "booking.pdf",
-        image: { type: "jpeg", quality: 0.95 },
-        html2canvas: {
-            scale: 2, // 🔥 high quality
-            useCORS: true
-        },
-        jsPDF: {
-            unit: "mm",
-            format: "a4",
-            orientation: "portrait"
-        }
+        const opt = {
+            margin: 5,
+            filename: "booking.pdf",
+            image: { type: "jpeg", quality: 0.95 },
+            html2canvas: {
+                scale: 2, // 🔥 high quality
+                useCORS: true
+            },
+            jsPDF: {
+                unit: "mm",
+                format: "a4",
+                orientation: "portrait"
+            }
+        };
+
+        const worker = html2pdf().set(opt).from(element);
+
+        const pdfBlob = await worker.outputPdf("blob");
+
+        return pdfBlob;
     };
-
-    const worker = html2pdf().set(opt).from(element);
-
-    const pdfBlob = await worker.outputPdf("blob");
-
-    return pdfBlob;
-};
 
     const handleSendWhatsapp = async () => {
         try {
@@ -884,13 +926,13 @@ const generatePdfBlob = async () => {
             formData.append("bookingId", bookingData.bookingId);
             formData.append("file", pdfBlob, "booking-slip.pdf");
 
-           const res = await dispatch(sendBookingWhatsapp(formData));
+            const res = await dispatch(sendBookingWhatsapp(formData));
 
-if (res?.meta?.requestStatus === "fulfilled") {
-    alert("✅ WhatsApp sent successfully");
-} else {
-    alert("❌ Failed to send WhatsApp");
-}
+            if (res?.meta?.requestStatus === "fulfilled") {
+                alert("✅ WhatsApp sent successfully");
+            } else {
+                alert("❌ Failed to send WhatsApp");
+            }
         } catch (err) {
             console.error(err);
             alert("❌ Failed");
@@ -2012,7 +2054,9 @@ if (res?.meta?.requestStatus === "fulfilled") {
                     }}>
                         --- DUPLICATE COPY ---
                     </Divider>
-                    <Invoice copyType="Duplicate" />
+                    {!bookingData?.cancelReason && (
+                        <Invoice copyType="Duplicate" />
+                    )}
                 </Box>
                 <Box
                     ref={originalRef}
@@ -2022,18 +2066,18 @@ if (res?.meta?.requestStatus === "fulfilled") {
                 </Box>
                 {/* WhatsApp only original */}
                 <div style={{ position: "absolute", left: "-9999px" }}>
-  <div
-    ref={whatsappRef}
-    style={{
-      width: "210mm",
-      minHeight: "297mm",
-      padding: "10mm",
-      background: "#fff"
-    }}
-  >
-    <Invoice />
-  </div>
-</div>
+                    <div
+                        ref={whatsappRef}
+                        style={{
+                            width: "210mm",
+                            minHeight: "297mm",
+                            padding: "10mm",
+                            background: "#fff"
+                        }}
+                    >
+                        <Invoice />
+                    </div>
+                </div>
                 <Box textAlign="center" mt={2}>
                     <ButtonGroup variant="contained" aria-label="slip actions">
                         <Button

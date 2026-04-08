@@ -254,21 +254,21 @@ const BookingCard = () => {
     setBookingToDelete(bookingId);
     setDeleteDialogOpen(true);
   };
- const handleCancel = (bookingId) => {
-  const reason = prompt("Enter cancel reason:");
+  const handleCancel = (bookingId) => {
+    const reason = prompt("Enter cancel reason:");
 
-  if (!reason || reason.trim() === "") {
-    alert("Cancel reason is required!");
-    return;
-  }
+    if (!reason || reason.trim() === "") {
+      alert("Cancel reason is required!");
+      return;
+    }
 
-  dispatch(cancelBooking({ bookingId, reason }))
-    .unwrap()
-    .then(() => {
-      alert("Booking cancelled successfully");
-      dispatch(fetchBookingsByType('cancelled')); // refresh
-    });
-};
+    dispatch(cancelBooking({ bookingId, reason }))
+      .unwrap()
+      .then(() => {
+        alert("Booking cancelled successfully");
+        dispatch(fetchBookingsByType('cancelled')); // refresh
+      });
+  };
   const handleDeleteConfirm = () => {
     dispatch(deleteBooking(bookingToDelete));
     setDeleteDialogOpen(false);
@@ -645,127 +645,127 @@ const BookingCard = () => {
                         <TableCell>{row.drop}</TableCell>
                         <TableCell>{row.contact}</TableCell>
                         {selectedList === "cancelled" && (
-                         <TableCell>
-                         {row.cancelReason || "-"}
+                          <TableCell>
+                            {row.cancelReason || "-"}
                           </TableCell>
-                          )}
-                       <TableCell>
-  <Box sx={{ display: "flex", gap: 1 }}>
+                        )}
+                        <TableCell>
+                          <Box sx={{ display: "flex", gap: 1 }}>
 
-    {selectedList === "cancelled" ? (
-      <>
-        {/* ✅ CANCEL TAB → ONLY 2 ICON */}
+                            {selectedList === "cancelled" ? (
+                              <>
+                                {/* ✅ CANCEL TAB → ONLY 2 ICON */}
 
-        <IconButton
-          size="small"
-          color="secondary"
-          onClick={() => handleSlipClick(row.bookingId)}
-          title="Slip"
-        >
-          <ReceiptIcon fontSize="small" />
-        </IconButton>
+                                <IconButton
+                                  size="small"
+                                  color="secondary"
+                                  onClick={() => handleSlipClick(row.bookingId)}
+                                  title="Slip"
+                                >
+                                  <ReceiptIcon fontSize="small" />
+                                </IconButton>
 
-        <IconButton
-          size="small"
-          color="error"
-          onClick={() => handleDeleteClick(row.bookingId)}
-          title="Delete"
-        >
-          <DeleteIcon fontSize="small" />
-        </IconButton>
-      </>
-    ) : (
-      <>
-        {/* ✅ TUMHARA ORIGINAL CODE SAME */}
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => handleDeleteClick(row.bookingId)}
+                                  title="Delete"
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </>
+                            ) : (
+                              <>
+                                {/* ✅ TUMHARA ORIGINAL CODE SAME */}
 
-        <IconButton
-          size="small"
-          color="info"
-          onClick={() => handleView(row.bookingId)}
-          title="View"
-        >
-          <VisibilityIcon fontSize="small" />
-        </IconButton>
+                                <IconButton
+                                  size="small"
+                                  color="info"
+                                  onClick={() => handleView(row.bookingId)}
+                                  title="View"
+                                >
+                                  <VisibilityIcon fontSize="small" />
+                                </IconButton>
 
-        <IconButton
-          size="small"
-          color="primary"
-          onClick={() => handleEdit(row.bookingId)}
-          title="Edit"
-        >
-          <EditIcon fontSize="small" />
-        </IconButton>
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() => handleEdit(row.bookingId)}
+                                  title="Edit"
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
 
-        <IconButton
-          size="small"
-          color="primary"
-          onClick={() => handleCancel(row.bookingId)}
-          title="CancelScheduleSend"
-        >
-          <CancelScheduleSendIcon fontSize="small" />
-        </IconButton>
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() => handleCancel(row.bookingId)}
+                                  title="CancelScheduleSend"
+                                >
+                                  <CancelScheduleSendIcon fontSize="small" />
+                                </IconButton>
 
-        <IconButton
-          size="small"
-          color="error"
-          onClick={() => handleDeleteClick(row.bookingId)}
-          title="Delete"
-        >
-          <DeleteIcon fontSize="small" />
-        </IconButton>
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => handleDeleteClick(row.bookingId)}
+                                  title="Delete"
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
 
-        <IconButton
-          size="small"
-          color="primary"
-          title="share"
-          onClick={() => handleShare(row.bookingId)}
-        >
-          <SendIcon fontSize="small" />
-        </IconButton>
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  title="share"
+                                  onClick={() => handleShare(row.bookingId)}
+                                >
+                                  <SendIcon fontSize="small" />
+                                </IconButton>
 
-        <IconButton
-          size="small"
-          color="secondary"
-          onClick={() => handleSlipClick(row.bookingId)}
-          title="Slip"
-        >
-          <ReceiptIcon fontSize="small" />
-        </IconButton>
+                                <IconButton
+                                  size="small"
+                                  color="secondary"
+                                  onClick={() => handleSlipClick(row.bookingId)}
+                                  title="Slip"
+                                >
+                                  <ReceiptIcon fontSize="small" />
+                                </IconButton>
 
-        {/* 📤 Upload Icon (ONLY ACTIVE) */}
-        {selectedList === "active" && (
-          <IconButton
-            size="small"
-            color="success"
-            onClick={() => handleUploadClick(row.bookingId)}
-            title="Upload PDF"
-          >
-            <UploadIcon fontSize="small" />
-          </IconButton>
-        )}
+                                {/* 📤 Upload Icon (ONLY ACTIVE) */}
+                                {selectedList === "active" && (
+                                  <IconButton
+                                    size="small"
+                                    color="success"
+                                    onClick={() => handleUploadClick(row.bookingId)}
+                                    title="Upload PDF"
+                                  >
+                                    <UploadIcon fontSize="small" />
+                                  </IconButton>
+                                )}
 
-        {/* 👁 Preview Icon */}
-        {selectedList === "active" && row.quotationPdf && (
-          <IconButton
-            size="small"
-            color="primary"
-            onClick={() => handlePreview(row.quotationPdf)}
-            title="Preview PDF"
-          >
-            <PictureAsPdfIcon fontSize="small" />
-          </IconButton>
-        )}
-      </>
-    )}
+                                {/* 👁 Preview Icon */}
+                                {selectedList === "active" && row.quotationPdf && (
+                                  <IconButton
+                                    size="small"
+                                    color="primary"
+                                    onClick={() => handlePreview(row.quotationPdf)}
+                                    title="Preview PDF"
+                                  >
+                                    <PictureAsPdfIcon fontSize="small" />
+                                  </IconButton>
+                                )}
+                              </>
+                            )}
 
-  </Box>
+                          </Box>
 
-  <SlipModal
-    open={openSlip}
-    handleClose={handleCloseSlip}
-    bookingData={booking}
-  />
-</TableCell>  
+                          <SlipModal
+                            open={openSlip}
+                            handleClose={handleCloseSlip}
+                            bookingData={booking}
+                          />
+                        </TableCell>
                       </>
                     )}
                   </TableRow>
