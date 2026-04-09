@@ -253,30 +253,30 @@ const QuotationCard = () => {
   };
 
   const handleCancel = (bookingId) => {
-  const reason = prompt("Enter cancel reason:");
+    const reason = prompt("Enter cancel reason:");
 
-  if (!reason) {
-    alert("❗ Cancel reason required");
-    return;
-  }
+    if (!reason) {
+      alert("❗ Cancel reason required");
+      return;
+    }
 
-  const confirmCancel = window.confirm(
-    `Are you sure?\nReason: ${reason}`
-  );
+    const confirmCancel = window.confirm(
+      `Are you sure?\nReason: ${reason}`
+    );
 
-  if (!confirmCancel) return;
+    if (!confirmCancel) return;
 
-  dispatch(cancelQuotation({ bookingId, reason }))
-    .unwrap()
-    .then(() => {
-      alert("✅ Cancelled successfully");
-      dispatch(fetchBookingRequest()); // refresh
-      dispatch(fetchCancelledBooking());
-    })
-    .catch((err) => {
-      alert(err || "Cancel failed");
-    });
-};
+    dispatch(cancelQuotation({ bookingId, reason }))
+      .unwrap()
+      .then(() => {
+        alert("✅ Cancelled successfully");
+        dispatch(fetchBookingRequest()); // refresh
+        dispatch(fetchCancelledBooking());
+      })
+      .catch((err) => {
+        alert(err || "Cancel failed");
+      });
+  };
 
   const handleChangePage = (event, newPage) => setPage(newPage);
 
@@ -693,11 +693,11 @@ const QuotationCard = () => {
                         <TableCell sx={{ whiteSpace: "nowrap", minWidth: 100 }}>
                           {formatDateToDDMMYYYY(row.Date || row.quotationDate)}
                         </TableCell>
-                       <Tooltip title={row.fromCustomerName || row.Name || row.senderName || ""} arrow>
-  <TableCell sx={{ whiteSpace: "nowrap", minWidth: 150 }}>
-    {row.fromCustomerName || row.Name || row.senderName}
-  </TableCell>
-</Tooltip>
+                        <Tooltip title={row.fromCustomerName || row.Name || row.senderName || ""} arrow>
+                          <TableCell sx={{ whiteSpace: "nowrap", minWidth: 150 }}>
+                            {row.fromCustomerName || row.Name || row.senderName}
+                          </TableCell>
+                        </Tooltip>
                         <Tooltip title={row.pickup || row.pickupCity || ""} arrow>
                           <TableCell sx={{ whiteSpace: "nowrap", minWidth: 150 }}>
                             {row.pickup || row.pickupCity}
@@ -717,146 +717,146 @@ const QuotationCard = () => {
                           <TableCell sx={{ whiteSpace: "nowrap", minWidth: 120 }}>
                             {row.Contact || row.contact}
                           </TableCell>
-                          </Tooltip>
-                          {selectedList === "cancelled" && (
+                        </Tooltip>
+                        {selectedList === "cancelled" && (
                           <TableCell sx={{ whiteSpace: "nowrap", minWidth: 150 }}>
-                          {row.cancelReason || "-"}
+                            {row.cancelReason || "-"}
                           </TableCell>
-                            )}
+                        )}
                         <TableCell sx={{ whiteSpace: "nowrap", minWidth: 250 }}>
                           <Box
-  sx={{
-    display: "flex",
-    gap: 0.5,
-    flexWrap: "nowrap",
-  }}
->
- {selectedList === "cancelled" ? (
-    <>
-      {/* ✅ Cancel case → sirf Slip + Delete */}
+                            sx={{
+                              display: "flex",
+                              gap: 0.5,
+                              flexWrap: "nowrap",
+                            }}
+                          >
+                            {selectedList === "cancelled" ? (
+                              <>
+                                {/* ✅ Cancel case → sirf Slip + Delete */}
 
-      <Tooltip title="Slip" arrow>
-        <IconButton
-          size="small"
-          color="secondary"
-          onClick={() =>
-            handleSlipClick(row["Booking ID"] || row.bookingId)
-          }
-        >
-          <ReceiptIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
+                                <Tooltip title="Slip" arrow>
+                                  <IconButton
+                                    size="small"
+                                    color="secondary"
+                                    onClick={() =>
+                                      handleSlipClick(row["Booking ID"] || row.bookingId)
+                                    }
+                                  >
+                                    <ReceiptIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
 
-      <Tooltip title="Delete" arrow>
-        <IconButton
-          size="small"
-          color="error"
-          onClick={() =>
-            handleDelete(row["Booking ID"] || row.bookingId)
-          }
-        >
-          <DeleteIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
-    </>
-  ) : (
-    <>
-      {/* ✅ TUMHARA ORIGINAL CODE SAME */}
+                                <Tooltip title="Delete" arrow>
+                                  <IconButton
+                                    size="small"
+                                    color="error"
+                                    onClick={() =>
+                                      handleDelete(row["Booking ID"] || row.bookingId)
+                                    }
+                                  >
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              </>
+                            ) : (
+                              <>
+                                {/* ✅ TUMHARA ORIGINAL CODE SAME */}
 
-      <Tooltip title="View" arrow>
-        <IconButton
-          size="small"
-          color="primary"
-          onClick={() => handleView(row["Booking ID"] || row.bookingId)}
-        >
-          <VisibilityIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
+                                <Tooltip title="View" arrow>
+                                  <IconButton
+                                    size="small"
+                                    color="primary"
+                                    onClick={() => handleView(row["Booking ID"] || row.bookingId)}
+                                  >
+                                    <VisibilityIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
 
-      <Tooltip title="Edit" arrow>
-        <IconButton
-          size="small"
-          color="primary"
-          onClick={() => handleUpdate(row["Booking ID"] || row.bookingId)}
-        >
-          <EditIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
+                                <Tooltip title="Edit" arrow>
+                                  <IconButton
+                                    size="small"
+                                    color="primary"
+                                    onClick={() => handleUpdate(row["Booking ID"] || row.bookingId)}
+                                  >
+                                    <EditIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
 
-      <Tooltip title="Cancel" arrow>
-        <IconButton
-          size="small"
-          color="primary"
-          onClick={() => handleCancel(row["Booking ID"] || row.bookingId)}
-        >
-          <CancelScheduleSendIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
+                                <Tooltip title="Cancel" arrow>
+                                  <IconButton
+                                    size="small"
+                                    color="primary"
+                                    onClick={() => handleCancel(row["Booking ID"] || row.bookingId)}
+                                  >
+                                    <CancelScheduleSendIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
 
-      <Tooltip title="Delete" arrow>
-        <IconButton
-          size="small"
-          color="error"
-          onClick={() => handleDelete(row["Booking ID"] || row.bookingId)}
-        >
-          <DeleteIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
+                                <Tooltip title="Delete" arrow>
+                                  <IconButton
+                                    size="small"
+                                    color="error"
+                                    onClick={() => handleDelete(row["Booking ID"] || row.bookingId)}
+                                  >
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
 
-      <Tooltip title="Send Email" arrow>
-        <IconButton
-          size="small"
-          color="primary"
-          onClick={() =>
-            handleEmailSend(row["Booking ID"] || row.bookingId)
-          }
-        >
-          <SendIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
+                                <Tooltip title="Send Email" arrow>
+                                  <IconButton
+                                    size="small"
+                                    color="primary"
+                                    onClick={() =>
+                                      handleEmailSend(row["Booking ID"] || row.bookingId)
+                                    }
+                                  >
+                                    <SendIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
 
-      <Tooltip title="Slip" arrow>
-        <IconButton
-          size="small"
-          color="secondary"
-          onClick={() =>
-            handleSlipClick(row["Booking ID"] || row.bookingId)
-          }
-        >
-          <ReceiptIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
+                                <Tooltip title="Slip" arrow>
+                                  <IconButton
+                                    size="small"
+                                    color="secondary"
+                                    onClick={() =>
+                                      handleSlipClick(row["Booking ID"] || row.bookingId)
+                                    }
+                                  >
+                                    <ReceiptIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
 
-      {/* 📤 Upload */}
-      {selectedList === "active" && (
-        <Tooltip title="Upload PDF" arrow>
-          <IconButton
-            size="small"
-            color="success"
-            onClick={() =>
-              handleUploadClick(row["Booking ID"] || row.bookingId)
-            }
-          >
-            <UploadIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      )}
+                                {/* 📤 Upload */}
+                                {selectedList === "active" && (
+                                  <Tooltip title="Upload PDF" arrow>
+                                    <IconButton
+                                      size="small"
+                                      color="success"
+                                      onClick={() =>
+                                        handleUploadClick(row["Booking ID"] || row.bookingId)
+                                      }
+                                    >
+                                      <UploadIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                )}
 
-      {/* 👁 Preview */}
-      {selectedList === "active" && row.quotationPdf && (
-        <Tooltip title="Preview PDF" arrow>
-          <IconButton
-            size="small"
-            color="info"
-            onClick={() => handlePdfPreview(row.quotationPdf)}
-          >
-            <PictureAsPdfIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      )}
-    </>
-  )}
-</Box>
+                                {/* 👁 Preview */}
+                                {selectedList === "active" && row.quotationPdf && (
+                                  <Tooltip title="Preview PDF" arrow>
+                                    <IconButton
+                                      size="small"
+                                      color="info"
+                                      onClick={() => handlePdfPreview(row.quotationPdf)}
+                                    >
+                                      <PictureAsPdfIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                )}
+                              </>
+                            )}
+                          </Box>
                         </TableCell>
                       </>
                     )}

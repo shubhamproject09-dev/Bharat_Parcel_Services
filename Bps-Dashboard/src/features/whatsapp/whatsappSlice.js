@@ -51,6 +51,54 @@ export const sendQuotationWhatsapp = createAsyncThunk(
     }
 );
 
+export const sendBookingCancelWhatsapp = createAsyncThunk(
+    "whatsapp/sendBookingCancel",
+    async (formData, { rejectWithValue, getState }) => {
+        try {
+            const token = getState().users?.token;
+
+            const res = await axios.post(
+                `${WHATSAPP_API}/send-booking-cancel`,
+                formData,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "multipart/form-data"
+                    }
+                }
+            );
+
+            return res.data;
+        } catch (err) {
+            return rejectWithValue(err.response?.data || err.message);
+        }
+    }
+);
+
+export const sendQuotationCancelWhatsapp = createAsyncThunk(
+    "whatsapp/sendQuotationCancel",
+    async (formData, { rejectWithValue, getState }) => {
+        try {
+            const token = getState().users?.token;
+
+            const res = await axios.post(
+                `${WHATSAPP_API}/send-quotation-cancel`,
+                formData,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "multipart/form-data"
+                    }
+                }
+            );
+
+            return res.data;
+        } catch (err) {
+            return rejectWithValue(err.response?.data || err.message);
+        }
+    }
+);
+
 const whatsappSlice = createSlice({
     name: "whatsapp",
     initialState: {
@@ -62,6 +110,14 @@ const whatsappSlice = createSlice({
         quotationLoading: false,
         quotationSuccess: false,
         quotationError: null,
+
+        cancelLoading: false,
+        cancelSuccess: false,
+        cancelError: null,
+
+        quotationCancelLoading: false,
+        quotationCancelSuccess: false,
+        quotationCancelError: null,
     },
     reducers: {
         resetWhatsappState: (state) => {
@@ -73,6 +129,14 @@ const whatsappSlice = createSlice({
             state.quotationLoading = false;
             state.quotationSuccess = false;
             state.quotationError = null;
+
+            state.cancelLoading = false;
+            state.cancelSuccess = false;
+            state.cancelError = null;
+
+            state.quotationCancelLoading = false;
+            state.quotationCancelSuccess = false;
+            state.quotationCancelError = null;
         }
     },
     extraReducers: (builder) => {
@@ -92,7 +156,7 @@ const whatsappSlice = createSlice({
                 state.error = action.payload;
                 state.success = false;
             })
-             .addCase(sendQuotationWhatsapp.pending, (state) => {
+            .addCase(sendQuotationWhatsapp.pending, (state) => {
                 state.quotationLoading = true;
                 state.quotationSuccess = false;
                 state.quotationError = null;
@@ -105,7 +169,36 @@ const whatsappSlice = createSlice({
                 state.quotationLoading = false;
                 state.quotationError = action.payload;
                 state.quotationSuccess = false;
-            });
+            })
+            .addCase(sendBookingCancelWhatsapp.pending, (state) => {
+                state.cancelLoading = true;
+                state.cancelSuccess = false;
+                state.cancelError = null;
+            })
+            .addCase(sendBookingCancelWhatsapp.fulfilled, (state) => {
+                state.cancelLoading = false;
+                state.cancelSuccess = true;
+            })
+            .addCase(sendBookingCancelWhatsapp.rejected, (state, action) => {
+                state.cancelLoading = false;
+                state.cancelError = action.payload;
+                state.cancelSuccess = false;
+            })
+
+            .addCase(sendQuotationCancelWhatsapp.pending, (state) => {
+                state.quotationCancelLoading = true;
+                state.quotationCancelSuccess = false;
+                state.quotationCancelError = null;
+            })
+            .addCase(sendQuotationCancelWhatsapp.fulfilled, (state) => {
+                state.quotationCancelLoading = false;
+                state.quotationCancelSuccess = true;
+            })
+            .addCase(sendQuotationCancelWhatsapp.rejected, (state, action) => {
+                state.quotationCancelLoading = false;
+                state.quotationCancelError = action.payload;
+                state.quotationCancelSuccess = false;
+            })
     }
 });
 

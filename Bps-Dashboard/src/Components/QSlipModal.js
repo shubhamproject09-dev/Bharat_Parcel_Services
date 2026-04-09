@@ -16,7 +16,7 @@ import Chip from '@mui/material/Chip';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import { useDispatch } from "react-redux";
 import { useSelector } from "react-redux";
-import { sendQuotationWhatsapp } from "../features/whatsapp/whatsappSlice";
+import { sendQuotationWhatsapp, sendQuotationCancelWhatsapp } from "../features/whatsapp/whatsappSlice";
 import { PDFDocument } from "pdf-lib";
 
 const QSlipModal = ({ open, handleClose, bookingData }) => {
@@ -148,15 +148,16 @@ const QSlipModal = ({ open, handleClose, bookingData }) => {
   const roundOff = (roundedGrandTotal - grandTotalBeforeRound).toFixed(2);
 
   const paymentType =
-  bookingData?.productDetails?.[0]?.topay === "paid"
-    ? "PAID"
-    : bookingData?.productDetails?.[0]?.topay === "toPay"
-    ? "TOPAY"
-    : "N/A";
+    bookingData?.productDetails?.[0]?.topay === "paid"
+      ? "PAID"
+      : bookingData?.productDetails?.[0]?.topay === "toPay"
+        ? "TOPAY"
+        : "N/A";
 
   const Invoice = ({ copyType = "Original" }) => (
     <Paper elevation={0} sx={{
       border: '2px solid #000',
+      position: "relative",
       m: 1,
       p: 1.5,
       fontSize: '12px',
@@ -164,6 +165,35 @@ const QSlipModal = ({ open, handleClose, bookingData }) => {
       background: copyType === "Duplicate" ? '#f9f9f9' : '#fff',
       height: '100%'
     }}>
+
+      {bookingData?.cancelReason && (
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%) rotate(-35deg)",
+            fontSize: "120px",
+            fontWeight: "900",
+            color: "rgba(255,0,0,0.15)",
+            zIndex: 9999,
+            pointerEvents: "none",
+            textAlign: "center",
+            width: "100%",
+          }}
+        >
+          CANCEL
+          <Typography
+            sx={{
+              fontSize: "26px",
+              fontWeight: "bold",
+              color: "rgba(255,0,0,0.25)",
+            }}
+          >
+            {bookingData.cancelReason}
+          </Typography>
+        </Box>
+      )}
       {/* Company Header with Colors */}
       <Grid container alignItems="center" justifyContent="space-between" sx={{
         mb: 1.5,
@@ -203,15 +233,27 @@ const QSlipModal = ({ open, handleClose, bookingData }) => {
             SUBJECT TO {bookingData?.startStation?.stationName || bookingData?.startStationName || 'DELHI'} JURISDICTION
           </Typography>
         </Box>
-       <Box textAlign="right">
-  <Typography sx={{
-    fontSize: '14px',
-    fontWeight: 'bold',
-    textTransform: 'uppercase'
-  }}>
-    PAYMENT: {paymentType}
-  </Typography>
-</Box>
+        <Box textAlign="right">
+          <Typography sx={{
+            fontSize: '14px',
+            fontWeight: 'bold',
+            textTransform: 'uppercase'
+          }}>
+            PAYMENT: {paymentType}
+          </Typography>
+          {bookingData?.cancelReason && (
+            <Typography
+              sx={{
+                fontSize: "11px",
+                fontWeight: "bold",
+                color: "red",
+                mt: 0.5,
+              }}
+            >
+              CANCELLED
+            </Typography>
+          )}
+        </Box>
       </Grid>
 
       {/* Top Addresses (Delhi & Mumbai) */}
@@ -510,19 +552,19 @@ const QSlipModal = ({ open, handleClose, bookingData }) => {
                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(item.insurance)}</TableCell>
                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(item.vppAmount)}</TableCell>
                 <TableCell align="center" sx={{ border: "1px solid #ddd" }}>{formatCurrency(item.price)}</TableCell>
-               <TableCell align="center" sx={{ border: "1px solid #ddd" }}>
-  <span style={{
-    fontWeight: "bold",
-    fontSize: "14px",
-    textTransform: "uppercase"
-  }}>
-    {item.topay === "paid"
-      ? "PAID"
-      : item.topay === "toPay"
-      ? "TOPAY"
-      : "N/A"}
-  </span>
-</TableCell>
+                <TableCell align="center" sx={{ border: "1px solid #ddd" }}>
+                  <span style={{
+                    fontWeight: "bold",
+                    fontSize: "14px",
+                    textTransform: "uppercase"
+                  }}>
+                    {item.topay === "paid"
+                      ? "PAID"
+                      : item.topay === "toPay"
+                        ? "TOPAY"
+                        : "N/A"}
+                  </span>
+                </TableCell>
               </TableRow>
             );
           })}
@@ -786,14 +828,17 @@ const QSlipModal = ({ open, handleClose, bookingData }) => {
     document.body.appendChild(wrapper);
 
     const canvas = await html2canvas(wrapper, {
-      scale: 1.6,
+      scale: 2.5,
       useCORS: true,
-      backgroundColor: "#ffffff"
+      backgroundColor: "#ffffff",
+      allowTaint: true,
+      letterRendering: true,
+      dpi: 300
     });
 
     document.body.removeChild(wrapper); // 🧹 cleanup
 
-    const imgData = canvas.toDataURL("image/jpeg", 0.7);
+    const imgData = canvas.toDataURL("image/jpeg", 1);
 
     const pdf = new jsPDF("p", "mm", "a4");
     const pageWidth = pdf.internal.pageSize.getWidth();
@@ -811,26 +856,39 @@ const QSlipModal = ({ open, handleClose, bookingData }) => {
   };
 
   const handleSendWhatsAppBilty = async () => {
-  try {
-    const pdfBlob = await generateBiltyPdfBlob();
+    try {
+      const pdfBlob = await generateBiltyPdfBlob();
 
-    const formData = new FormData();
-    formData.append("bookingId", bookingData.bookingId);
-    formData.append("file", pdfBlob, "quotation.pdf");
+      const formData = new FormData();
+      formData.append("bookingId", bookingData.bookingId);
+      formData.append("file", pdfBlob, "quotation.pdf");
 
-    const res = await dispatch(sendQuotationWhatsapp(formData));
+      let res;
 
-    if (res?.meta?.requestStatus === "fulfilled") {
-      alert("✅ Quotation Bilty sent on WhatsApp");
-    } else {
-      alert("❌ Failed to send");
+      // 🔥 MAIN LOGIC
+      if (bookingData?.cancelReason) {
+        // ❌ CANCEL CASE
+        res = await dispatch(sendQuotationCancelWhatsapp(formData));
+      } else {
+        // ✅ NORMAL CASE
+        res = await dispatch(sendQuotationWhatsapp(formData));
+      }
+
+      if (res?.meta?.requestStatus === "fulfilled") {
+        alert(
+          bookingData?.cancelReason
+            ? "✅ Cancel WhatsApp sent"
+            : "✅ Quotation Bilty sent on WhatsApp"
+        );
+      } else {
+        alert("❌ Failed to send");
+      }
+
+    } catch (error) {
+      console.error(error);
+      alert("❌ Error sending WhatsApp");
     }
-
-  } catch (error) {
-    console.error(error);
-    alert("❌ Error sending WhatsApp");
-  }
-};
+  };
 
   const handleDownloadPDF = async () => {
     await loadImageAsBase64(companySignature);
@@ -1484,10 +1542,10 @@ const QSlipModal = ({ open, handleClose, bookingData }) => {
     text-transform:uppercase;
   ">
     ${item.topay === "paid"
-      ? "PAID"
-      : item.topay === "toPay"
-      ? "TOPAY"
-      : "N/A"}
+          ? "PAID"
+          : item.topay === "toPay"
+            ? "TOPAY"
+            : "N/A"}
   </span>
 </td>
                                         </tr>
@@ -1701,10 +1759,10 @@ const QSlipModal = ({ open, handleClose, bookingData }) => {
     text-transform:uppercase;
   ">
     ${item.topay === "paid"
-      ? "PAID"
-      : item.topay === "toPay"
-      ? "TOPAY"
-      : "N/A"}
+          ? "PAID"
+          : item.topay === "toPay"
+            ? "TOPAY"
+            : "N/A"}
   </span>
 </td>
                                         </tr>
@@ -1844,53 +1902,61 @@ const QSlipModal = ({ open, handleClose, bookingData }) => {
           </Box>
 
           {/* ❌ DUPLICATE (sirf UI / print ke liye) */}
-          <Divider
-            sx={{
-              borderColor: 'black',
-              borderStyle: 'dashed',
-              my: 2,
-              fontSize: '12px',
-              textAlign: 'center',
-              fontWeight: 'bold',
-              py: 1,
-              backgroundColor: '#f5f5f5'
-            }}
-          >
-            --- DUPLICATE COPY ---
-          </Divider>
+          {!bookingData?.cancelReason && (
+            <>
+              <Divider
+                sx={{
+                  borderColor: 'black',
+                  borderStyle: 'dashed',
+                  my: 2,
+                  fontSize: '12px',
+                  textAlign: 'center',
+                  fontWeight: 'bold',
+                  py: 1,
+                  backgroundColor: '#f5f5f5'
+                }}
+              >
+                --- DUPLICATE COPY ---
+              </Divider>
 
-          <Invoice copyType="Duplicate" />
+              <Invoice copyType="Duplicate" />
+            </>
+          )}
         </Box>
         <Box textAlign="center" mt={2}>
           <ButtonGroup variant="contained" aria-label="slip actions">
-            <Button
-              startIcon={<ReceiptIcon />}
-              onClick={handleDownloadPDF}
-              sx={{
-                px: 3,
-                mr: 2,
-                backgroundColor: '#1a237e',
-                '&:hover': { backgroundColor: '#283593' }
-              }}
-            >
-              Download PDF
-            </Button>
-            <Button
-              startIcon={<PrintIcon />}
-              onClick={handleDirectPrint}
-              sx={{
-                px: 3,
-                ml: 2,
-                backgroundColor: '#388e3c',
-                '&:hover': { backgroundColor: '#2e7d32' }
-              }}
-            >
-              Print
-            </Button>
+            {!bookingData?.cancelReason && (
+              <>
+                <Button
+                  startIcon={<ReceiptIcon />}
+                  onClick={handleDownloadPDF}
+                  sx={{
+                    px: 3,
+                    mr: 2,
+                    backgroundColor: '#1a237e',
+                    '&:hover': { backgroundColor: '#283593' }
+                  }}
+                >
+                  Download PDF
+                </Button>
+                <Button
+                  startIcon={<PrintIcon />}
+                  onClick={handleDirectPrint}
+                  sx={{
+                    px: 3,
+                    ml: 2,
+                    backgroundColor: '#388e3c',
+                    '&:hover': { backgroundColor: '#2e7d32' }
+                  }}
+                >
+                  Print
+                </Button>
+              </>
+            )}
             <Button
               startIcon={<WhatsAppIcon />}
-  onClick={handleSendWhatsAppBilty}
-  disabled={loading}
+              onClick={handleSendWhatsAppBilty}
+              disabled={loading}
               sx={{
                 px: 3,
                 ml: 2,

@@ -313,27 +313,22 @@ export const generateInvoicePDF = async (data) => {
             const wt = Number(item.weight || 0);
             const insVpp = Number(item.insurance || 0) + Number(item.vppAmount || 0);
 
-            // ✅ taxable base = freight only
+            // ✅ DB se directly values lo
             const freight = Number(b.freight || 0);
+            const total = Number(b.grandTotal || 0);
 
-            // payment type
-            const payType = item.toPay; // "toPay" | "paid"
+            // GST derive karo (difference se)
+            const gstAmount = total - freight - insVpp;
 
-            let gstAmount = 0;
+            // label
+            const payType = item.toPay;
             let gstLabel = "";
 
             if (payType === "toPay") {
-                gstAmount = freight * 0.18;
                 gstLabel = `IGST 18%: ${gstAmount.toFixed(2)}`;
-            } else if (payType === "paid") {
-                const cgst = freight * 0.09;
-                const sgst = freight * 0.09;
-                gstAmount = cgst + sgst;
+            } else {
                 gstLabel = `CGST 9% + SGST 9%: ${gstAmount.toFixed(2)}`;
             }
-
-            // ✅ total
-            const total = freight + insVpp + gstAmount;
 
             const row = [
                 i + 1,
@@ -389,7 +384,7 @@ export const generateInvoicePDF = async (data) => {
         });
 
         // ================= ROUND OFF CALCULATION =================
-        const gross = totalAmount + totalIgst;        // subtotal + gst
+        const gross = bookings.reduce((sum, b) => sum + (b.grandTotal || 0), 0);
         const roundedGrand = Math.round(gross);       // nearest rupee
         const roundOff = (roundedGrand - gross).toFixed(2);  // + / - difference
 

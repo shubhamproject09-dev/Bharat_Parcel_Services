@@ -108,3 +108,118 @@ export const sendQuotationTemplate = async ({
     }
   );
 };
+
+
+export const sendBookingCancelTemplate = async ({
+  mobile,
+  pdfUrl,
+  biltyNo,
+  bookingId,
+  fromCity,
+  toCity,
+  reason
+}) => {
+  const payload = {
+    to: mobile,
+    recipient_type: "individual",
+    type: "template",
+    template: {
+      name: "cancel_whatsapp", // ✅ tera template name
+      language: {
+        policy: "deterministic",
+        code: "en",
+      },
+      components: [
+        {
+          type: "header",
+          parameters: [
+            {
+              type: "document",
+              document: {
+                link: pdfUrl,
+              },
+            },
+          ],
+        },
+        {
+          type: "body",
+          parameters: [
+            { type: "text", text: biltyNo },      // {{1}}
+            { type: "text", text: bookingId },    // {{2}}
+            { type: "text", text: fromCity },     // {{3}}
+            { type: "text", text: toCity },       // {{4}}
+            { type: "text", text: reason },       // {{5}}
+          ],
+        },
+      ],
+    },
+  };
+
+  return axios.post(
+    `${BASE_URL}/v19.0/${PHONE_NUMBER_ID}/messages`,
+    payload,
+    {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${TOKEN}`,
+      },
+    }
+  );
+};
+
+export const sendQuotationCancelTemplate = async ({
+  mobile,
+  pdfUrl,
+  biltyNo,
+  bookingId,
+  fromCity,
+  toCity,
+  reason
+}) => {
+  const payload = {
+    to: mobile,
+    recipient_type: "individual",
+    type: "template",
+    template: {
+      name: "cancel_whatsapp", // ✅ same template
+      language: {
+        policy: "deterministic",
+        code: "en",
+      },
+      components: [
+        {
+          type: "header",
+          parameters: [
+            {
+              type: "document",
+              document: {
+                link: pdfUrl,
+              },
+            },
+          ],
+        },
+        {
+          type: "body",
+          parameters: [
+            { type: "text", text: biltyNo },
+            { type: "text", text: bookingId },
+            { type: "text", text: fromCity },
+            { type: "text", text: toCity },
+            { type: "text", text: reason },
+          ],
+        },
+      ],
+    },
+  };
+
+  return axios.post(
+    `${BASE_URL}/v19.0/${PHONE_NUMBER_ID}/messages`,
+    payload,
+    {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${TOKEN}`,
+      },
+    }
+  );
+};

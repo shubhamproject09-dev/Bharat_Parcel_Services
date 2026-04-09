@@ -997,7 +997,7 @@ export const overallBookingSummary = async (req, res) => {
             $gte: new Date(fromDate),
             $lte: new Date(endDate)
           },
-  totalCancelled: { $eq: 0 }
+          totalCancelled: { $eq: 0 }
         }
       },
       {
@@ -1064,7 +1064,7 @@ export const getBookingSummaryByDate = async (req, res) => {
         $gte: from,
         $lte: to
       },
-  totalCancelled: { $eq: 0 } 
+      totalCancelled: { $eq: 0 }
     };
 
     if (user.role === "supervisor") {
@@ -1352,7 +1352,7 @@ export const getCADetailsSummary = async (req, res) => {
         $group: {
           _id: null,
           voucherCount: { $sum: 1 },
-          taxableValue: { $sum: "$billTotal" },
+          invoiceAmount: { $sum: "$grandTotal" },
           totalCgstPercent: { $sum: "$cgst" },
           totalSgstPercent: { $sum: "$sgst" },
           totalIgstPercent: { $sum: "$igst" },
@@ -1373,24 +1373,13 @@ export const getCADetailsSummary = async (req, res) => {
         }
       },
       {
-        $addFields: {
-          centralTax: {
-            $round: [{ $divide: [{ $multiply: ["$taxableValue", "$totalCgstPercent"] }, 100] }, 2]
-          },
-          stateTax: {
-            $round: [{ $divide: [{ $multiply: ["$taxableValue", "$totalSgstPercent"] }, 100] }, 2]
-          },
-          integratedTax: {
-            $round: [{ $divide: [{ $multiply: ["$taxableValue", "$totalIgstPercent"] }, 100] }, 2]
-          }
-        }
-      },
-      {
-        $addFields: {
-          invoiceAmount: {
-            $add: ["$taxableValue", "$centralTax", "$stateTax", "$integratedTax"]
-          },
-          cessAmount: { $literal: 0 }
+        $group: {
+          _id: null,
+          voucherCount: { $sum: 1 },
+          invoiceAmount: { $sum: "$grandTotal" },
+          senderNames: { $addToSet: "$senderName" },
+          startStations: { $addToSet: "$startStationName" },
+          endStations: { $addToSet: "$endStationName" }
         }
       },
       {
@@ -1464,43 +1453,43 @@ export const generateInvoiceByCustomer = async (req, res) => {
     const search = normalize(customerName);
 
     // 2️⃣ Decide BILL TO per booking
-    const invoiceBookings = bookings
-      .map(b => {
-        const item = b.items?.[0];
-        if (!item) return null;
+    const invoiceBookings = bookings.map(b => {
+      const item = b.items?.[0];
+      if (!item) return null;
 
-        // PAID → Sender
-        if (item.toPay === "paid" && normalize(b.senderName).includes(search)) {
-          return {
-            ...b.toObject(),
-            billToName: b.senderName,
-            billToAddress: b.senderLocality,
-            billToGst: b.senderGgt,
-          };
-        }
+      // PAID → Sender
+      if (item.toPay === "paid" && normalize(b.senderName).includes(search)) {
+        return {
+          ...b.toObject(),
+          finalAmount: b.grandTotal || 0,
+          billToName: b.senderName,
+          billToAddress: b.senderLocality,
+          billToGst: b.senderGgt,
+        };
+      }
 
-        // TOPAY → Receiver
-        if (item.toPay === "toPay" && normalize(b.receiverName).includes(search)) {
-          return {
-            ...b.toObject(),
-            billToName: b.receiverName,
-            billToAddress: b.receiverLocality,
-            billToGst: b.receiverGgt,
-          };
-        }
+      // TOPAY → Receiver
+      if (item.toPay === "toPay" && normalize(b.receiverName).includes(search)) {
+        return {
+          ...b.toObject(),
+          billToName: b.receiverName,
+          billToAddress: b.receiverLocality,
+          billToGst: b.receiverGgt,
+        };
+      }
 
-        // TOPAY → sender select kare, receiver bill bane
-        // if (item.toPay === "toPay" && normalize(b.senderName).includes(search)) {
-        //   return {
-        //     ...b.toObject(),
-        //     billToName: b.receiverName,
-        //     billToAddress: b.receiverLocality,
-        //     billToGst: b.receiverGgt,
-        //   };
-        // }
+      // TOPAY → sender select kare, receiver bill bane
+      // if (item.toPay === "toPay" && normalize(b.senderName).includes(search)) {
+      //   return {
+      //     ...b.toObject(),
+      //     billToName: b.receiverName,
+      //     billToAddress: b.receiverLocality,
+      //     billToGst: b.receiverGgt,
+      //   };
+      // }
 
-        return null;
-      })
+      return null;
+    })
       .filter(Boolean);
 
     if (!invoiceBookings.length) {

@@ -12,7 +12,7 @@ import companySignature from '../assets/BpsSignature.png';
 import moment from "moment-timezone";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import { useDispatch } from "react-redux";
-import { sendBookingWhatsapp } from "../features/whatsapp/whatsappSlice";
+import { sendBookingWhatsapp, sendBookingCancelWhatsapp } from "../features/whatsapp/whatsappSlice";
 import { createRoot } from "react-dom/client";
 import html2pdf from "html2pdf.js";
 
@@ -897,21 +897,39 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
         const element = whatsappRef.current;
 
         const opt = {
-            margin: 5,
+            margin: 0,   // 🔥 remove margin
             filename: "booking.pdf",
-            image: { type: "jpeg", quality: 0.95 },
+            image: { type: "jpeg", quality: 1 },
             html2canvas: {
-                scale: 2, // 🔥 high quality
-                useCORS: true
+                scale: 2,
+                useCORS: true,
+                letterRendering: true,
+                dpi: 300
             },
             jsPDF: {
                 unit: "mm",
                 format: "a4",
                 orientation: "portrait"
+            },
+            pagebreak: {
+                mode: ["avoid-all", "css", "legacy"]  // 🔥 ADD
             }
         };
 
-        const worker = html2pdf().set(opt).from(element);
+        const worker = html2pdf()
+            .set(opt)
+            .from(element)
+            .toPdf()
+            .get('pdf')
+            .then((pdf) => {
+
+                const totalPages = pdf.internal.getNumberOfPages();
+
+                // 🔥 REMOVE BLANK PAGE
+                if (totalPages > 1) {
+                    pdf.deletePage(totalPages);
+                }
+            });
 
         const pdfBlob = await worker.outputPdf("blob");
 
@@ -926,13 +944,27 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
             formData.append("bookingId", bookingData.bookingId);
             formData.append("file", pdfBlob, "booking-slip.pdf");
 
-            const res = await dispatch(sendBookingWhatsapp(formData));
+            let res;
+
+            // 🔥 CONDITION
+            if (bookingData?.cancelReason) {
+                // ❌ CANCEL CASE
+                res = await dispatch(sendBookingCancelWhatsapp(formData));
+            } else {
+                // ✅ NORMAL CASE
+                res = await dispatch(sendBookingWhatsapp(formData));
+            }
 
             if (res?.meta?.requestStatus === "fulfilled") {
-                alert("✅ WhatsApp sent successfully");
+                alert(
+                    bookingData?.cancelReason
+                        ? "✅ Cancel WhatsApp sent"
+                        : "✅ WhatsApp sent successfully"
+                );
             } else {
                 alert("❌ Failed to send WhatsApp");
             }
+
         } catch (err) {
             console.error(err);
             alert("❌ Failed");
@@ -2042,20 +2074,26 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
             }}>
                 <Box ref={printRef}>
                     <Invoice copyType="Original" />
-                    <Divider sx={{
-                        borderColor: 'black',
-                        borderStyle: 'dashed',
-                        my: 2,
-                        fontSize: '12px',
-                        textAlign: 'center',
-                        fontWeight: 'bold',
-                        py: 1,
-                        backgroundColor: '#f5f5f5'
-                    }}>
-                        --- DUPLICATE COPY ---
-                    </Divider>
+
                     {!bookingData?.cancelReason && (
-                        <Invoice copyType="Duplicate" />
+                        <>
+                            <Divider
+                                sx={{
+                                    borderColor: 'black',
+                                    borderStyle: 'dashed',
+                                    my: 2,
+                                    fontSize: '12px',
+                                    textAlign: 'center',
+                                    fontWeight: 'bold',
+                                    py: 1,
+                                    backgroundColor: '#f5f5f5'
+                                }}
+                            >
+                                --- DUPLICATE COPY ---
+                            </Divider>
+
+                            <Invoice copyType="Duplicate" />
+                        </>
                     )}
                 </Box>
                 <Box
@@ -2072,7 +2110,8 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
                             width: "210mm",
                             minHeight: "297mm",
                             padding: "10mm",
-                            background: "#fff"
+                            background: "#fff",
+                            overflow: "hidden",
                         }}
                     >
                         <Invoice />
@@ -2080,30 +2119,34 @@ const SlipModal = ({ open, handleClose, bookingData }) => {
                 </div>
                 <Box textAlign="center" mt={2}>
                     <ButtonGroup variant="contained" aria-label="slip actions">
-                        <Button
-                            startIcon={<ReceiptIcon />}
-                            onClick={handleDownloadPDF}
-                            sx={{
-                                px: 3,
-                                mr: 2,
-                                backgroundColor: '#1a237e',
-                                '&:hover': { backgroundColor: '#283593' }
-                            }}
-                        >
-                            Download PDF
-                        </Button>
-                        <Button
-                            startIcon={<PrintIcon />}
-                            onClick={handleDirectPrint}
-                            sx={{
-                                px: 3,
-                                ml: 2,
-                                backgroundColor: '#388e3c',
-                                '&:hover': { backgroundColor: '#2e7d32' }
-                            }}
-                        >
-                            Print
-                        </Button>
+                        {!bookingData?.cancelReason && (
+                            <>
+                                <Button
+                                    startIcon={<ReceiptIcon />}
+                                    onClick={handleDownloadPDF}
+                                    sx={{
+                                        px: 3,
+                                        mr: 2,
+                                        backgroundColor: '#1a237e',
+                                        '&:hover': { backgroundColor: '#283593' }
+                                    }}
+                                >
+                                    Download PDF
+                                </Button>
+                                <Button
+                                    startIcon={<PrintIcon />}
+                                    onClick={handleDirectPrint}
+                                    sx={{
+                                        px: 3,
+                                        ml: 2,
+                                        backgroundColor: '#388e3c',
+                                        '&:hover': { backgroundColor: '#2e7d32' }
+                                    }}
+                                >
+                                    Print
+                                </Button>
+                            </>
+                        )}
                         <Button
                             startIcon={<WhatsAppIcon />}
                             onClick={handleSendWhatsapp}
