@@ -1,4 +1,4 @@
-import React, { useState,useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
     Box,
     Button,
@@ -14,7 +14,7 @@ import {
     MenuItem,
     Tooltip,
     Chip,
-    TextField 
+    TextField
 } from "@mui/material";
 import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
@@ -30,7 +30,7 @@ import ReceiptIcon from "@mui/icons-material/Receipt";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchIncomingBookings, viewBookingById } from "../../../features/booking/bookingSlice";
 import { fetchStations } from "../../../features/stations/stationSlice";
-import SlipModal from "../../../Components/SlipModal";  
+import SlipModal from "../../../Components/SlipModal";
 
 const BookingForm = () => {
     const dispatch = useDispatch();
@@ -47,11 +47,11 @@ const BookingForm = () => {
     const open = Boolean(anchorEl);
     const [searchText, setSearchText] = useState("");
     const [startStation, setStartStation] = useState("");
-const [endStation, setEndStation] = useState("");
+    const [endStation, setEndStation] = useState("");
 
-useEffect(() => {
-  dispatch(fetchStations(localStorage.getItem("token")));
-}, []);
+    useEffect(() => {
+        dispatch(fetchStations(localStorage.getItem("token")));
+    }, []);
 
     const handleSearch = () => {
         if (!startDate || !endDate) {
@@ -59,8 +59,12 @@ useEffect(() => {
             return;
         }
 
-        const fromDate = startDate.toISOString().split("T")[0];
-        const toDate = endDate.toISOString().split("T")[0];
+        const fromDate = new Date(startDate.getTime() - startDate.getTimezoneOffset() * 60000)
+            .toISOString()
+            .split("T")[0];
+        const toDate = new Date(endDate.getTime() - endDate.getTimezoneOffset() * 60000)
+            .toISOString()
+            .split("T")[0];
 
         dispatch(fetchIncomingBookings({ fromDate, toDate }));
     };
@@ -329,26 +333,26 @@ useEffect(() => {
     };
 
     const filteredList = incomingList.filter((row) => {
-  const search = searchText.toLowerCase();
+        const search = searchText.toLowerCase();
 
-  const receiptNos = row.items?.map(i => i.receiptNo).join(" ") || "";
+        const receiptNos = row.items?.map(i => i.receiptNo).join(" ") || "";
 
-  const matchSearch =
-    row.bookingId?.toLowerCase().includes(search) ||
-    receiptNos.toLowerCase().includes(search) ||
-    (row.senderName || "").toLowerCase().includes(search) ||
-    (row.receiverName || "").toLowerCase().includes(search);
+        const matchSearch =
+            row.bookingId?.toLowerCase().includes(search) ||
+            receiptNos.toLowerCase().includes(search) ||
+            (row.senderName || "").toLowerCase().includes(search) ||
+            (row.receiverName || "").toLowerCase().includes(search);
 
-  const matchStart =
-    !startStation ||
-    (row.startStation?.stationName || "").toLowerCase() === startStation.toLowerCase();
+        const matchStart =
+            !startStation ||
+            (row.startStation?.stationName || "").toLowerCase() === startStation.toLowerCase();
 
-  const matchEnd =
-    !endStation ||
-    (row.endStation?.stationName || "").toLowerCase() === endStation.toLowerCase();
+        const matchEnd =
+            !endStation ||
+            (row.endStation?.stationName || "").toLowerCase() === endStation.toLowerCase();
 
-  return matchSearch && matchStart && matchEnd;
-});
+        return matchSearch && matchStart && matchEnd;
+    });
 
     return (
         <Paper elevation={3} sx={{ p: 3, maxWidth: "95%", mx: "auto", mt: 4, overflowX: 'auto' }}>
@@ -381,51 +385,51 @@ useEffect(() => {
                             Search
                         </Button>
                         {incomingList.length > 0 && (
-  <TextField
-    size="small"
-    placeholder="Search Booking ID / Receipt / Sender / Receiver"
-    value={searchText}
-    onChange={(e) => setSearchText(e.target.value)}
-    sx={{ minWidth: 300 }}
-  />
-)}
-{incomingList.length > 0 && (
-  <>
-    {/* Start Station */}
-    <TextField
-      select
-      size="small"
-      label="Start Station"
-      value={startStation}
-      onChange={(e) => setStartStation(e.target.value)}
-      sx={{ minWidth: 180 }}
-    >
-      <MenuItem value="">All</MenuItem>
-      {stationList?.map((s) => (
-        <MenuItem key={s.stationId} value={s.stationName}>
-          {s.stationName}
-        </MenuItem>
-      ))}
-    </TextField>
+                            <TextField
+                                size="small"
+                                placeholder="Search Booking ID / Receipt / Sender / Receiver"
+                                value={searchText}
+                                onChange={(e) => setSearchText(e.target.value)}
+                                sx={{ minWidth: 300 }}
+                            />
+                        )}
+                        {incomingList.length > 0 && (
+                            <>
+                                {/* Start Station */}
+                                <TextField
+                                    select
+                                    size="small"
+                                    label="Start Station"
+                                    value={startStation}
+                                    onChange={(e) => setStartStation(e.target.value)}
+                                    sx={{ minWidth: 180 }}
+                                >
+                                    <MenuItem value="">All</MenuItem>
+                                    {stationList?.map((s) => (
+                                        <MenuItem key={s.stationId} value={s.stationName}>
+                                            {s.stationName}
+                                        </MenuItem>
+                                    ))}
+                                </TextField>
 
-    {/* End Station */}
-    <TextField
-      select
-      size="small"
-      label="End Station"
-      value={endStation}
-      onChange={(e) => setEndStation(e.target.value)}
-      sx={{ minWidth: 180 }}
-    >
-      <MenuItem value="">All</MenuItem>
-      {stationList?.map((s) => (
-        <MenuItem key={s.stationId} value={s.stationName}>
-          {s.stationName}
-        </MenuItem>
-      ))}
-    </TextField>
-  </>
-)}
+                                {/* End Station */}
+                                <TextField
+                                    select
+                                    size="small"
+                                    label="End Station"
+                                    value={endStation}
+                                    onChange={(e) => setEndStation(e.target.value)}
+                                    sx={{ minWidth: 180 }}
+                                >
+                                    <MenuItem value="">All</MenuItem>
+                                    {stationList?.map((s) => (
+                                        <MenuItem key={s.stationId} value={s.stationName}>
+                                            {s.stationName}
+                                        </MenuItem>
+                                    ))}
+                                </TextField>
+                            </>
+                        )}
                     </Stack>
                 </LocalizationProvider>
 
@@ -459,8 +463,8 @@ useEffect(() => {
             {incomingList.length > 0 && (
                 <Box sx={{ overflowX: 'auto' }}>
                     <div style={{ marginBottom: "10px", fontWeight: "bold" }}>
-    Total Records: {filteredList.length}
-  </div>
+                        Total Records: {filteredList.length}
+                    </div>
                     <Table sx={{ minWidth: 1400 }}>
                         <TableHead sx={{ backgroundColor: "#1976d2" }}>
                             <TableRow>

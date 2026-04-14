@@ -493,11 +493,21 @@ export const countFinalDeliveries = asyncHandler(async (req, res) => {
 });
 
 export const listFinalDeliveries = asyncHandler(async (req, res) => {
-  const deliveries = await Delivery.find({ status: "Final Delivery" })
+
+  let filter = { status: "Final Delivery" };
+
+  if (req.user.role === "supervisor") {
+    filter.$or = [
+      { pickup: req.user.startStation },
+      { drop: req.user.startStation }
+    ];
+  }
+
+  const deliveries = await Delivery.find(filter)
     .populate([
       { path: "vehicleModel", select: "vehicleModel" },
-      { path: "bookingId", select: "quotationPdf bookingId items" },   // 🔥 booking pdf
-      { path: "quotationId", select: "quotationPdf bookingId productDetails" }, // 🔥 quotation pdf
+      { path: "bookingId", select: "quotationPdf bookingId items" },
+      { path: "quotationId", select: "quotationPdf bookingId productDetails" },
     ])
     .lean();
 
@@ -515,33 +525,24 @@ export const listFinalDeliveries = asyncHandler(async (req, res) => {
     return {
       SNo: i + 1,
       orderId: delivery.orderId,
-
       biltyNo,
-
       deliveryType: delivery.deliveryType,
-
       fromName: delivery.fromName || "N/A",
       toName: delivery.toName || "N/A",
-
       pickup: delivery.pickup || "N/A",
       drop: delivery.drop || "N/A",
-
       contact: delivery.contact || "N/A",
-
       driverName: delivery.driverName || "N/A",
-
       vehicle: delivery.vehicleModel
         ? {
           _id: delivery.vehicleModel._id,
           vehicleModel: delivery.vehicleModel.vehicleModel,
         }
         : null,
-
       pdfUrl:
         delivery.deliveryType === "Booking"
           ? delivery.bookingId?.quotationPdf || null
           : delivery.quotationId?.quotationPdf || null,
-
       bookingRef: delivery.bookingId?.bookingId || null,
       quotationRef: delivery.quotationId?.bookingId || null,
     };

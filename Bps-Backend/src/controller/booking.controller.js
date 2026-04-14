@@ -1836,24 +1836,29 @@ export const getInvoicesByFilter = async (req, res) => {
 };
 export const getIncomingBookings = async (req, res) => {
   try {
-    const user = req.user; // logged-in user
+    const user = req.user;
     const { fromDate, toDate } = req.body;
 
     if (!fromDate || !toDate) {
       return res.status(400).json({ message: "fromDate and toDate are required" });
     }
 
+    // ✅ FIX: Proper date handling
+    const from = new Date(fromDate);
+    from.setHours(0, 0, 0, 0);
+
+    const to = new Date(toDate);
+    to.setHours(23, 59, 59, 999);
+
     const dateFilter = {
       bookingDate: {
-        $gte: new Date(fromDate),
-        $lte: new Date(toDate)
+        $gte: from,
+        $lte: to
       }
     };
 
-    // let bookingFilter = { ...dateFilter };
     let bookingFilter = {
-      ...dateFilter,
-
+      ...dateFilter
     };
 
     if (user.role === "supervisor") {
@@ -1861,16 +1866,17 @@ export const getIncomingBookings = async (req, res) => {
         return res.status(400).json({ message: "Supervisor must have a startStation assigned" });
       }
 
-      // Find the supervisor's station document
       const station = await Station.findOne({ stationName: user.startStation });
       if (!station) {
         return res.status(404).json({ message: "Supervisor's station not found" });
       }
 
-      // Show all bookings where endStation equals supervisor's startStation
       bookingFilter.endStation = station._id;
     }
-    // Admin: no endStation filter, they see all
+
+    // 🔍 Debug (optional but helpful)
+    console.log("FROM:", from);
+    console.log("TO:", to);
 
     const incomingBookings = await Booking.find(bookingFilter)
       .populate("startStation", "stationName")

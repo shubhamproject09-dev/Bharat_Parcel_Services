@@ -427,26 +427,26 @@ const quotationSlice = createSlice({
         state.error = null
       })
       .addCase(updateBookingById.fulfilled, (state, action) => {
-  state.status = 'succeeded';
-  state.error = null;
+        state.status = 'succeeded';
+        state.error = null;
 
-  const updatedBooking = action.payload;
+        const updatedBooking = action.payload;
 
-  // ✅ Ensure list is array
-  if (!Array.isArray(state.list)) {
-    state.list = [];
-  }
+        // ✅ Ensure list is array
+        if (!Array.isArray(state.list)) {
+          state.list = [];
+        }
 
-  const index = state.list.findIndex(
-    booking => booking.bookingId === updatedBooking.bookingId
-  );
+        const index = state.list.findIndex(
+          booking => booking.bookingId === updatedBooking.bookingId
+        );
 
-  if (index !== -1) {
-    state.list[index] = updatedBooking;
-  }
+        if (index !== -1) {
+          state.list[index] = updatedBooking;
+        }
 
-  state.form = initialState.form;
-})
+        state.form = initialState.form;
+      })
       .addCase(revenueList.pending, (state) => {
         state.loading = true;
         state.error = null
@@ -547,28 +547,28 @@ const quotationSlice = createSlice({
         state.error = action.payload;
       })
       .addCase(cancelQuotation.fulfilled, (state, action) => {
-  state.list = state.list.filter(
-    (item) => item.bookingId !== action.payload.bookingId
-  )
-})
-.addCase(receivePayment.fulfilled, (state, action) => {
-  const updated = action.payload.data;
+        state.list = state.list.filter(
+          (item) => item.bookingId !== action.payload.bookingId
+        )
+      })
+      .addCase(receivePayment.fulfilled, (state, action) => {
+        const updated = action.payload.data;
 
-  const index = state.list.findIndex(
-    item =>
-      item.bookingId === action.payload.bookingId ||
-      item["Booking ID"] === action.payload.bookingId
-  );
+        const index = state.list.findIndex(
+          item =>
+            item.bookingId === action.payload.bookingId ||
+            item["Booking ID"] === action.payload.bookingId
+        );
 
-  if (index !== -1) {
-    state.list[index] = {
-      ...state.list[index],
-      paidAmount: updated.paidAmount,
-      deliveryPendingAmount: updated.deliveryPendingAmount,
-      paymentStatus: updated.paymentStatus,
-    };
-  }
-})
+        if (index !== -1) {
+          state.list[index] = {
+            ...state.list[index],
+            paidAmount: updated.paidAmount,
+            deliveryPendingAmount: updated.deliveryPendingAmount,
+            paymentStatus: updated.paymentStatus,
+          };
+        }
+      })
 
   }
 })

@@ -1,4 +1,4 @@
-import React, { useState,useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
     Box,
     Button,
@@ -49,20 +49,27 @@ const QBookingForm = () => {
     const [anchorEl, setAnchorEl] = useState(null);
     const open = Boolean(anchorEl);
     const [searchText, setSearchText] = useState("");
-const [startStation, setStartStation] = useState("");
-const [endStation, setEndStation] = useState("");
+    const [startStation, setStartStation] = useState("");
+    const [endStation, setEndStation] = useState("");
 
-useEffect(() => {
-  dispatch(fetchStations(localStorage.getItem("token")));
-}, []);
+    useEffect(() => {
+        dispatch(fetchStations(localStorage.getItem("token")));
+    }, []);
 
     const handleSearch = () => {
         if (!startDate || !endDate) {
             alert("Please select both start and end dates");
             return;
         }
-        const fromDate = startDate.toISOString().split("T")[0];
-        const toDate = endDate.toISOString().split("T")[0];
+        const formatLocalDate = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, "0");
+            const day = String(date.getDate()).padStart(2, "0");
+            return `${year}-${month}-${day}`;
+        };
+
+        const fromDate = formatLocalDate(startDate);
+        const toDate = formatLocalDate(endDate);
         dispatch(fetchIncomingQuotations({ fromDate, toDate }));
     };
 
@@ -337,26 +344,26 @@ useEffect(() => {
     };
 
     const filteredList = quotationsList.filter((row) => {
-  const search = searchText.toLowerCase();
+        const search = searchText.toLowerCase();
 
-  const receiptNos = row.productDetails?.map(i => i.receiptNo).join(" ") || "";
+        const receiptNos = row.productDetails?.map(i => i.receiptNo).join(" ") || "";
 
-  const matchSearch =
-    row.bookingId?.toLowerCase().includes(search) ||
-    receiptNos.toLowerCase().includes(search) ||
-    (row.fromCustomerName || "").toLowerCase().includes(search) ||
-    (row.toCustomerName || "").toLowerCase().includes(search);
+        const matchSearch =
+            row.bookingId?.toLowerCase().includes(search) ||
+            receiptNos.toLowerCase().includes(search) ||
+            (row.fromCustomerName || "").toLowerCase().includes(search) ||
+            (row.toCustomerName || "").toLowerCase().includes(search);
 
-  const matchStart =
-    !startStation ||
-    (row.startStation?.stationName || "").toLowerCase() === startStation.toLowerCase();
+        const matchStart =
+            !startStation ||
+            (row.startStation?.stationName || "").toLowerCase() === startStation.toLowerCase();
 
-  const matchEnd =
-    !endStation ||
-    (row.endStation || "").toLowerCase() === endStation.toLowerCase();
+        const matchEnd =
+            !endStation ||
+            (row.endStation || "").toLowerCase() === endStation.toLowerCase();
 
-  return matchSearch && matchStart && matchEnd;
-});
+        return matchSearch && matchStart && matchEnd;
+    });
 
     return (
         <Paper elevation={3} sx={{ p: 3, maxWidth: "95%", mx: "auto", mt: 4, overflowX: 'auto' }}>
@@ -389,51 +396,51 @@ useEffect(() => {
                             Search
                         </Button>
                         {quotationsList?.length > 0 && (
-  <>
-    {/* 🔍 Search */}
-    <TextField
-      size="small"
-      placeholder="Search Booking ID / Receipt / Sender / Receiver"
-      value={searchText}
-      onChange={(e) => setSearchText(e.target.value)}
-      sx={{ minWidth: 250 }}
-    />
+                            <>
+                                {/* 🔍 Search */}
+                                <TextField
+                                    size="small"
+                                    placeholder="Search Booking ID / Receipt / Sender / Receiver"
+                                    value={searchText}
+                                    onChange={(e) => setSearchText(e.target.value)}
+                                    sx={{ minWidth: 250 }}
+                                />
 
-    {/* 🚀 Start Station */}
-    <TextField
-      select
-      size="small"
-      label="Start Station"
-      value={startStation}
-      onChange={(e) => setStartStation(e.target.value)}
-      sx={{ minWidth: 180 }}
-    >
-      <MenuItem value="">All</MenuItem>
-      {stationList?.map((s) => (
-        <MenuItem key={s.stationId} value={s.stationName}>
-          {s.stationName}
-        </MenuItem>
-      ))}
-    </TextField>
+                                {/* 🚀 Start Station */}
+                                <TextField
+                                    select
+                                    size="small"
+                                    label="Start Station"
+                                    value={startStation}
+                                    onChange={(e) => setStartStation(e.target.value)}
+                                    sx={{ minWidth: 180 }}
+                                >
+                                    <MenuItem value="">All</MenuItem>
+                                    {stationList?.map((s) => (
+                                        <MenuItem key={s.stationId} value={s.stationName}>
+                                            {s.stationName}
+                                        </MenuItem>
+                                    ))}
+                                </TextField>
 
-    {/* 🚀 End Station */}
-    <TextField
-      select
-      size="small"
-      label="End Station"
-      value={endStation}
-      onChange={(e) => setEndStation(e.target.value)}
-      sx={{ minWidth: 180 }}
-    >
-      <MenuItem value="">All</MenuItem>
-      {stationList?.map((s) => (
-        <MenuItem key={s.stationId} value={s.stationName}>
-          {s.stationName}
-        </MenuItem>
-      ))}
-    </TextField>
-  </>
-)}
+                                {/* 🚀 End Station */}
+                                <TextField
+                                    select
+                                    size="small"
+                                    label="End Station"
+                                    value={endStation}
+                                    onChange={(e) => setEndStation(e.target.value)}
+                                    sx={{ minWidth: 180 }}
+                                >
+                                    <MenuItem value="">All</MenuItem>
+                                    {stationList?.map((s) => (
+                                        <MenuItem key={s.stationId} value={s.stationName}>
+                                            {s.stationName}
+                                        </MenuItem>
+                                    ))}
+                                </TextField>
+                            </>
+                        )}
                     </Stack>
                 </LocalizationProvider>
 
@@ -467,9 +474,9 @@ useEffect(() => {
             {/* Table */}
             {quotationsList?.length > 0 && (
                 <Box sx={{ overflowX: 'auto' }}>
-                     <Typography sx={{ mb: 1, fontWeight: "bold" }}>
-    Total Records: {filteredList.length}
-  </Typography>
+                    <Typography sx={{ mb: 1, fontWeight: "bold" }}>
+                        Total Records: {filteredList.length}
+                    </Typography>
                     <Table sx={{ minWidth: 1400 }}>
                         <TableHead sx={{ backgroundColor: "#1976d2" }}>
                             <TableRow>

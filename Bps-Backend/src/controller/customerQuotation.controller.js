@@ -34,16 +34,16 @@ const formatQuotations = (quotations) => {
       ? "Admin"
       : `Supervisor ${q.startStation?.stationName || ''}`,
     "Date": formatDateOnly(q.quotationDate),
-  "Name": q.fromCustomerName
-  || (q.customerId
-    ? `${q.customerId.firstName} ${q.customerId.lastName}`
-    : `${q.firstName || ""} ${q.lastName || ""}`.trim()),
+    "Name": q.fromCustomerName
+      || (q.customerId
+        ? `${q.customerId.firstName} ${q.customerId.lastName}`
+        : `${q.firstName || ""} ${q.lastName || ""}`.trim()),
     "pickup": q.startStation?.stationName || q.startStationName || 'N/A',
     "": "",
     "Name (Drop)": q.toCustomerName || "",
     "drop": q.endStation || "",
     "Contact": q.mobile || "",
-     "cancelReason": q.cancelReason || "-", 
+    "cancelReason": q.cancelReason || "-",
     "Action": [
       { name: "View", icon: "view-icon", action: `/api/quotations/${q._id}` },
       { name: "Edit", icon: "edit-icon", action: `/api/quotations/edit/${q._id}` },
@@ -800,14 +800,16 @@ export const getIncomingQuotations = asyncHandler(async (req, res) => {
 
   // Parse dates
   const from = new Date(fromDate);
+  from.setHours(0, 0, 0, 0);   // ✅ start date fix
+
   const to = new Date(toDate);
-  to.setHours(23, 59, 59, 999);
+  to.setHours(23, 59, 59, 999); // ✅ end date full include
 
   let quotationFilter = {
     quotationDate: { $gte: from, $lte: to },
     isDelivered: false,
     activeDelivery: false,
-     totalCancelled: { $eq: 0 }
+    totalCancelled: { $eq: 0 }
   };
 
   if (user.role === "supervisor") {
